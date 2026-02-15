@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getCard, type CardData, formatPrice, getDisplayName, getKeyLegalities } from "@/lib/api";
+import { getCard, type CardData, formatPrice, getDisplayName, getKeyLegalities, getLatestPriceSnapshot } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { ChevronLeft, Share2, Heart, TrendingUp, TrendingDown, Settings2, Plus, 
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { PriceList, PriceListItem, FollowedCard } from "@shared/schema";
+import { PriceHistoryChart } from "@/components/price-history-chart";
 
 const ALL_SOURCES = [
   { key: "us", label: "美国市场 (USD)", flag: "\u{1F1FA}\u{1F1F8}", desc: "TCGPlayer / Scryfall" },
@@ -74,6 +75,12 @@ export default function CardDetail() {
 
   const { data: followedCards = [] } = useQuery<FollowedCard[]>({
     queryKey: ["/api/followed-cards"],
+  });
+
+  const { data: latestSnapshot } = useQuery({
+    queryKey: ["price-snapshot-latest", id],
+    queryFn: () => getLatestPriceSnapshot(id!, "scryfall"),
+    enabled: !!id && isFollowed,
   });
 
   useEffect(() => {
@@ -406,6 +413,28 @@ export default function CardDetail() {
               </div>
             )}
           </div>
+
+          {/* Price Trend Chart */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-heading font-bold text-xs uppercase tracking-widest flex items-center gap-2 text-primary">
+                <span className="w-5 h-5 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <TrendingUp className="w-3 h-3" />
+                </span>
+                价格趋势
+              </h3>
+              {latestSnapshot && card.prices.usd != null && latestSnapshot.priceUsd != null && (
+                <PriceChangeBadge
+                  currentPrice={card.prices.usd}
+                  snapshotPrice={latestSnapshot.priceUsd}
+                />
+              )}
+            </div>
+            <PriceHistoryChart
+              scryfallId={card.scryfall_id}
+              cardName={card.name_cn || card.name_en}
+            />
+          </div>
         </div>
       </div>
 
@@ -586,5 +615,35 @@ function ListIcon({ className }: { className?: string }) {
       <line x1="3" y1="12" x2="3.01" y2="12" />
       <line x1="3" y1="18" x2="3.01" y2="18" />
     </svg>
+  );
+}
+
+function PriceChangeBadge({ currentPrice, snapshotPrice }: { currentPrice: number; snapshotPrice: number }) {
+  if (snapshotPrice === 0) return null;
+  const change = ((currentPrice - snapshotPrice) / snapshotPrice) * 100;
+  const absChange = Math.abs(change);
+
+  if (absChange < 0.5) {
+    return (
+      <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+        -- 持平
+      </span>
+    );
+  }
+
+  if (change > 0) {
+    return (
+      <span className="text-[10px] font-mono font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+        <TrendingUp className="w-3 h-3" />
+        +{absChange.toFixed(1)}%
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-[10px] font-mono font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+      <TrendingDown className="w-3 h-3" />
+      -{absChange.toFixed(1)}%
+    </span>
   );
 }
