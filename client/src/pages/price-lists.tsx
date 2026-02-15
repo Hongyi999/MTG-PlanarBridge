@@ -9,7 +9,6 @@ import {
   ChevronLeft, Plus, Trash2, Download, Edit2, Check, X, ShoppingCart,
   Tag, Eye, MoreHorizontal, FileSpreadsheet, Image as ImageIcon, Share2
 } from "lucide-react";
-import { MOCK_CARDS } from "@/lib/mock-data";
 import type { PriceList, PriceListItem } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -162,17 +161,16 @@ export default function PriceLists() {
   };
 
   const getItemValue = (item: PriceListItem, key: string): string => {
-    const mockCard = MOCK_CARDS.find(c => c.id === item.cardMockId);
     switch (key) {
       case "name_cn": return item.cardNameCn || "-";
       case "name_en": return item.cardName;
-      case "name_jp": return mockCard ? `${mockCard.name_cn}(JP)` : "-";
-      case "type_line": return mockCard?.type_line || "-";
+      case "name_jp": return "-";
+      case "type_line": return "-";
       case "set": return item.cardSetCode || "-";
-      case "rarity": return mockCard?.rarity || "-";
-      case "oracle_text": return mockCard?.oracle_text || "-";
-      case "mana_cost": return mockCard?.mana_cost || "-";
-      case "colors": return mockCard?.colors?.join(", ") || "无色";
+      case "rarity": return "-";
+      case "oracle_text": return "-";
+      case "mana_cost": return "-";
+      case "colors": return "-";
       case "quantity": return item.quantity.toString();
       case "condition": return item.condition || "NM";
       case "price_tcg": return item.priceUsd ? `$${item.priceUsd}` : "-";

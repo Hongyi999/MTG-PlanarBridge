@@ -1,14 +1,38 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MOCK_CARDS } from "@/lib/mock-data";
+import { searchCards, type CardData, type SearchResult } from "@/lib/api";
 import { MTGCard } from "@/components/mtg-card";
-import { Search, TrendingUp, Flame, List, Clock } from "lucide-react";
+import { Search, TrendingUp, Flame, List, Clock, Loader2 } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 export default function Home() {
-  const hotCards = MOCK_CARDS.slice(0, 3);
-  const recentCards = MOCK_CARDS.slice(2, 5);
+  const [, navigate] = useLocation();
+  const [searchValue, setSearchValue] = useState("");
+
+  const { data: hotCardsData, isLoading: hotLoading } = useQuery<SearchResult>({
+    queryKey: ["hot-cards"],
+    queryFn: () => searchCards("format:standard rarity:mythic", 1),
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const { data: recentCardsData, isLoading: recentLoading } = useQuery<SearchResult>({
+    queryKey: ["recent-cards"],
+    queryFn: () => searchCards("format:modern rarity:rare", 1),
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const hotCards = hotCardsData?.cards?.slice(0, 3) ?? [];
+  const recentCards = recentCardsData?.cards?.slice(0, 5) ?? [];
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchValue.trim()) {
+      navigate("/library");
+    }
+  };
 
   return (
     <div className="space-y-8 pb-8">
@@ -20,14 +44,16 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="relative">
+        <form onSubmit={handleSearchSubmit} className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             placeholder="搜索卡牌、系列或规则..."
             className="pl-9 bg-card/50 border-primary/20 focus-visible:ring-primary/30"
             data-testid="input-search"
+            value={searchValue}
+            onChange={e => setSearchValue(e.target.value)}
           />
-        </div>
+        </form>
       </section>
 
       <section className="grid grid-cols-2 gap-3">
@@ -62,27 +88,37 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 gap-3">
-          {hotCards.map(card => (
-            <Link key={card.id} href={`/card/${card.id}`}>
-              <div className="flex items-center justify-between p-3 bg-card border border-border rounded-lg shadow-sm hover:bg-accent/5 transition-colors cursor-pointer" data-testid={`card-market-${card.id}`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border border-border">
-                    <img src={card.image_uri} alt={card.name_en} className="w-full h-full object-cover scale-150" />
+          {hotLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            hotCards.map(card => (
+              <Link key={card.scryfall_id} href={`/card/${card.scryfall_id}`}>
+                <div className="flex items-center justify-between p-3 bg-card border border-border rounded-lg shadow-sm hover:bg-accent/5 transition-colors cursor-pointer" data-testid={`card-market-${card.scryfall_id}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full overflow-hidden border border-border">
+                      <img src={card.image_uri ?? ""} alt={card.name_en} className="w-full h-full object-cover scale-150" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">{card.name_cn ?? card.name_en}</div>
+                      <div className="text-xs text-muted-foreground">{card.name_en}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-medium text-sm">{card.name_cn}</div>
-                    <div className="text-xs text-muted-foreground">{card.name_en}</div>
+                  <div className="text-right">
+                    <div className="font-mono font-medium">
+                      {card.prices.cny_converted != null
+                        ? `¥${card.prices.cny_converted.toFixed(2)}`
+                        : card.prices.usd != null
+                        ? `$${card.prices.usd.toFixed(2)}`
+                        : "N/A"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">N/A</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-mono font-medium">¥{card.prices.cny}</div>
-                  <div className="text-xs text-green-600 flex items-center justify-end gap-0.5">
-                    <span>+{(Math.random() * 5).toFixed(1)}%</span>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))
+          )}
         </div>
       </section>
 
@@ -92,16 +128,22 @@ export default function Home() {
           <h2 className="text-lg font-heading font-semibold">社区热门</h2>
         </div>
 
-        <ScrollArea className="w-full whitespace-nowrap pb-4">
-          <div className="flex w-max space-x-4 p-1">
-            {recentCards.map(card => (
-              <div key={card.id} className="w-[140px]">
-                <MTGCard card={card} variant="grid" />
-              </div>
-            ))}
+        {recentLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+        ) : (
+          <ScrollArea className="w-full whitespace-nowrap pb-4">
+            <div className="flex w-max space-x-4 p-1">
+              {recentCards.map(card => (
+                <div key={card.scryfall_id} className="w-[140px]">
+                  <MTGCard card={card} variant="grid" />
+                </div>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        )}
       </section>
 
       <section className="grid grid-cols-2 gap-3">

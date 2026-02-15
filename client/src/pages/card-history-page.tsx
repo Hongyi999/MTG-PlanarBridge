@@ -31,7 +31,7 @@ export default function CardHistoryPage() {
       ) : (
         <div className="space-y-2">
           {history.map((entry) => (
-            <Link key={entry.id} href={`/card/${entry.cardMockId}`}>
+            <Link key={entry.id} href={`/card/${entry.scryfallId}`}>
               <Card className="border-border/40 hover:border-primary/30 transition-colors cursor-pointer" data-testid={`card-history-${entry.id}`}>
                 <CardContent className="p-3 flex items-center gap-3">
                   <div className="w-12 h-16 rounded overflow-hidden flex-shrink-0 shadow-sm">

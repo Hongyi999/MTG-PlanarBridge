@@ -7,7 +7,7 @@ import {
   type UserSetting, type CommunityPost, type InsertCommunityPost
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, ilike, or } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -15,6 +15,9 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getCards(): Promise<Card[]>;
   getCard(id: number): Promise<Card | undefined>;
+  getCardByScryfallId(scryfallId: string): Promise<Card | undefined>;
+  upsertCard(cardData: Partial<InsertCard> & { scryfall_id: string; name_en: string }): Promise<Card>;
+  searchCardsCached(query: string): Promise<Card[]>;
   createCard(card: InsertCard): Promise<Card>;
   getPosts(): Promise<(Post & { user: User; card?: Card })[]>;
   createPost(post: InsertPost): Promise<Post>;
@@ -70,6 +73,34 @@ export class DatabaseStorage implements IStorage {
   async getCard(id: number): Promise<Card | undefined> {
     const [card] = await db.select().from(cards).where(eq(cards.id, id));
     return card;
+  }
+
+  async getCardByScryfallId(scryfallId: string): Promise<Card | undefined> {
+    const [card] = await db.select().from(cards).where(eq(cards.scryfall_id, scryfallId));
+    return card;
+  }
+
+  async upsertCard(cardData: Partial<InsertCard> & { scryfall_id: string; name_en: string }): Promise<Card> {
+    const existing = await this.getCardByScryfallId(cardData.scryfall_id);
+    if (existing) {
+      const [updated] = await db.update(cards)
+        .set({ ...cardData, cached_at: new Date() })
+        .where(eq(cards.scryfall_id, cardData.scryfall_id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(cards).values(cardData as InsertCard).returning();
+    return created;
+  }
+
+  async searchCardsCached(query: string): Promise<Card[]> {
+    const q = `%${query}%`;
+    return await db.select().from(cards)
+      .where(or(
+        ilike(cards.name_en, q),
+        ilike(cards.name_cn, q)
+      ))
+      .limit(20);
   }
 
   async createCard(insertCard: InsertCard): Promise<Card> {
@@ -165,8 +196,8 @@ export class DatabaseStorage implements IStorage {
     const all = await db.select().from(cardHistory).orderBy(desc(cardHistory.viewedAt));
     const seen = new Set<string>();
     return all.filter(entry => {
-      if (seen.has(entry.cardMockId)) return false;
-      seen.add(entry.cardMockId);
+      if (seen.has(entry.scryfallId)) return false;
+      seen.add(entry.scryfallId);
       return true;
     });
   }
@@ -190,6 +221,7 @@ export class DatabaseStorage implements IStorage {
     const [created] = await db.insert(userSettings).values({ key, value }).returning();
     return created;
   }
+
   async getCommunityPosts(): Promise<CommunityPost[]> {
     return await db.select().from(communityPosts).orderBy(desc(communityPosts.createdAt));
   }

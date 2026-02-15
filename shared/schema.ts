@@ -15,14 +15,26 @@ export const cards = pgTable("cards", {
   name_en: text("name_en").notNull(),
   name_cn: text("name_cn"),
   image_uri: text("image_uri"),
+  image_uri_small: text("image_uri_small"),
   set_code: text("set_code"),
+  set_name: text("set_name"),
   collector_number: text("collector_number"),
+  mana_cost: text("mana_cost"),
+  type_line: text("type_line"),
+  type_line_cn: text("type_line_cn"),
+  oracle_text: text("oracle_text"),
+  oracle_text_cn: text("oracle_text_cn"),
+  colors: text("colors").array(),
+  color_identity: text("color_identity").array(),
+  rarity: text("rarity"),
   prices: jsonb("prices").$type<{
-    usd?: number;
-    usd_foil?: number;
-    cny?: number;
-    jpy?: number;
+    usd?: number | null;
+    usd_foil?: number | null;
+    eur?: number | null;
+    tix?: number | null;
   }>(),
+  legalities: jsonb("legalities").$type<Record<string, string>>(),
+  cached_at: timestamp("cached_at").defaultNow(),
 });
 
 export const posts = pgTable("posts", {
@@ -45,7 +57,7 @@ export const userCards = pgTable("user_cards", {
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
-export const insertCardSchema = createInsertSchema(cards).omit({ id: true });
+export const insertCardSchema = createInsertSchema(cards).omit({ id: true, cached_at: true });
 export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true, likes: true, comments: true });
 export const priceLists = pgTable("price_lists", {
   id: serial("id").primaryKey(),
@@ -57,7 +69,7 @@ export const priceLists = pgTable("price_lists", {
 export const priceListItems = pgTable("price_list_items", {
   id: serial("id").primaryKey(),
   listId: integer("list_id").references(() => priceLists.id).notNull(),
-  cardMockId: text("card_mock_id").notNull(),
+  scryfallId: text("scryfall_id").notNull(),
   cardName: text("card_name").notNull(),
   cardNameCn: text("card_name_cn"),
   cardImage: text("card_image"),
@@ -73,7 +85,7 @@ export const priceListItems = pgTable("price_list_items", {
 
 export const followedCards = pgTable("followed_cards", {
   id: serial("id").primaryKey(),
-  cardMockId: text("card_mock_id").notNull(),
+  scryfallId: text("scryfall_id").notNull(),
   cardName: text("card_name").notNull(),
   cardNameCn: text("card_name_cn"),
   cardImage: text("card_image"),
@@ -82,7 +94,7 @@ export const followedCards = pgTable("followed_cards", {
 
 export const cardHistory = pgTable("card_history", {
   id: serial("id").primaryKey(),
-  cardMockId: text("card_mock_id").notNull(),
+  scryfallId: text("scryfall_id").notNull(),
   cardName: text("card_name").notNull(),
   cardNameCn: text("card_name_cn"),
   cardImage: text("card_image"),
@@ -102,7 +114,7 @@ export const communityPosts = pgTable("community_posts", {
   content: text("content").notNull(),
   type: text("type", { enum: ["discussion", "sell", "buy", "trade"] }).notNull().default("discussion"),
   images: text("images").array(),
-  cardMockId: text("card_mock_id"),
+  scryfallId: text("scryfall_id"),
   cardName: text("card_name"),
   cardImage: text("card_image"),
   price: real("price"),

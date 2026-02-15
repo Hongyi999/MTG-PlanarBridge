@@ -62,6 +62,19 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(app);
 
+  // Initialize default exchange rates if not set
+  try {
+    const { storage } = await import("./storage");
+    const cnySetting = await storage.getSetting("usd_to_cny");
+    if (!cnySetting) {
+      await storage.setSetting("usd_to_cny", "7.25");
+      await storage.setSetting("usd_to_jpy", "150");
+      log("Initialized default exchange rates");
+    }
+  } catch (e) {
+    // DB may not be ready yet, skip
+  }
+
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
