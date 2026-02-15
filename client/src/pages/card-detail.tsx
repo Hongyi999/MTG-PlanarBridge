@@ -14,7 +14,6 @@ import { PriceHistoryChart } from "@/components/price-history-chart";
 
 const ALL_SOURCES = [
   { key: "us", label: "美国市场 (USD)", flag: "\u{1F1FA}\u{1F1F8}", desc: "TCGPlayer / Scryfall" },
-  { key: "jp", label: "日本市场 (JPY)", flag: "\u{1F1EF}\u{1F1F5}", desc: "Hareruya (\u6674\u5C4B)" },
   { key: "cn", label: "中国市场 (CNY)", flag: "\u{1F1E8}\u{1F1F3}", desc: "综合均价" },
 ];
 
@@ -45,7 +44,7 @@ export default function CardDetail() {
   const [showCreateInline, setShowCreateInline] = useState(false);
   const [newListName, setNewListName] = useState("");
   const [showSourceManager, setShowSourceManager] = useState(false);
-  const [enabledSources, setEnabledSources] = useState<string[]>(["us", "jp", "cn"]);
+  const [enabledSources, setEnabledSources] = useState<string[]>(["us", "cn"]);
   const [pendingSources, setPendingSources] = useState<string[]>([]);
   const [showApplyAllDialog, setShowApplyAllDialog] = useState(false);
 
@@ -350,33 +349,6 @@ export default function CardDetail() {
                         <p className="text-[9px] text-muted-foreground font-medium mt-1">估算 ≈ {formatPrice(card.prices.cny_converted, "cny")}</p>
                       )}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {enabledSources.includes("jp") && (
-              <Card className="border-border/60 bg-card/60 shadow-sm overflow-hidden">
-                <div className="bg-muted/20 px-3 py-1.5 border-b border-border/40 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">{"\u{1F1EF}\u{1F1F5}"}</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">日本市场 (JPY)</span>
-                  </div>
-                  <span className="text-[9px] text-muted-foreground">{cachedAtLabel}</span>
-                </div>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" />
-                    <div>
-                      <p className="text-xs font-bold">Hareruya (\u6674\u5C4B)</p>
-                      <p className="text-[9px] text-muted-foreground">NM · 日文</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono font-bold text-base leading-none">{formatPrice(card.prices.jpy_converted, "jpy")}</p>
-                    {card.prices.jpy_converted != null && card.prices.cny_converted != null && (
-                      <p className="text-[9px] text-muted-foreground font-medium mt-1">估算价格</p>
-                    )}
                   </div>
                 </CardContent>
               </Card>

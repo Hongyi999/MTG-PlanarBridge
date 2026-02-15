@@ -11,7 +11,6 @@ import { apiRequest } from "@/lib/queryClient";
 
 const ALL_SOURCES = [
   { key: "us", label: "美国市场 (USD)", flag: "🇺🇸", desc: "TCGPlayer / Scryfall" },
-  { key: "jp", label: "日本市场 (JPY)", flag: "🇯🇵", desc: "Hareruya (晴屋)" },
   { key: "cn", label: "中国市场 (CNY)", flag: "🇨🇳", desc: "综合均价" },
 ];
 
@@ -19,19 +18,18 @@ const SETTINGS_KEY = "price_sources";
 const EXPORT_PRESET_KEY = "export_dimensions";
 
 const EXPORT_DIM_LABELS: Record<string, string> = {
-  name_cn: "中文名称", name_en: "英文名称", name_jp: "日文名称",
+  name_cn: "中文名称", name_en: "英文名称",
   type_line: "类别", set: "系列", rarity: "稀有度",
   oracle_text: "规则文本", mana_cost: "法术力费用", colors: "颜色",
   quantity: "数量", condition: "品相", notes: "备注",
   price_tcg: "TCGPlayer (USD)", price_tcg_cny: "TCGPlayer (≈CNY)",
-  price_hareruya: "晴屋 (JPY)", price_hareruya_cny: "晴屋 (≈CNY)",
   price_cn: "中国市场 (CNY)", subtotal: "小计 (CNY)",
 };
 
 export default function Me() {
   const [isDark, setIsDark] = useState(false);
   const [showSourceManager, setShowSourceManager] = useState(false);
-  const [enabledSources, setEnabledSources] = useState<string[]>(["us", "jp", "cn"]);
+  const [enabledSources, setEnabledSources] = useState<string[]>(["us", "cn"]);
   const [showExportPreset, setShowExportPreset] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();

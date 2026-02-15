@@ -24,7 +24,6 @@ const DEFAULT_LISTS = [
 const EXPORT_DIMENSIONS = [
   { key: "name_cn", label: "中文名称", default: true },
   { key: "name_en", label: "英文名称", default: true },
-  { key: "name_jp", label: "日文名称", default: false },
   { key: "type_line", label: "类别", default: false },
   { key: "set", label: "系列", default: true },
   { key: "rarity", label: "稀有度", default: false },
@@ -35,15 +34,12 @@ const EXPORT_DIMENSIONS = [
   { key: "condition", label: "品相", default: true },
   { key: "price_tcg", label: "TCGPlayer (USD)", default: true },
   { key: "price_tcg_cny", label: "TCGPlayer (≈CNY)", default: true },
-  { key: "price_hareruya", label: "晴屋 Hareruya (JPY)", default: false },
-  { key: "price_hareruya_cny", label: "晴屋 Hareruya (≈CNY)", default: false },
   { key: "price_cn", label: "中国市场 (CNY)", default: true },
   { key: "subtotal", label: "小计 (CNY)", default: true },
   { key: "notes", label: "备注", default: false },
 ];
 
 const USD_TO_CNY = 7.25;
-const JPY_TO_CNY = 0.048;
 
 export default function PriceLists() {
   const queryClient = useQueryClient();
@@ -164,7 +160,6 @@ export default function PriceLists() {
     switch (key) {
       case "name_cn": return item.cardNameCn || "-";
       case "name_en": return item.cardName;
-      case "name_jp": return "-";
       case "type_line": return "-";
       case "set": return item.cardSetCode || "-";
       case "rarity": return "-";
@@ -175,8 +170,6 @@ export default function PriceLists() {
       case "condition": return item.condition || "NM";
       case "price_tcg": return item.priceUsd ? `$${item.priceUsd}` : "-";
       case "price_tcg_cny": return item.priceUsd ? `¥${(item.priceUsd * USD_TO_CNY).toFixed(2)}` : "-";
-      case "price_hareruya": return item.priceJpy ? `¥${item.priceJpy.toLocaleString()}` : "-";
-      case "price_hareruya_cny": return item.priceJpy ? `¥${(item.priceJpy * JPY_TO_CNY).toFixed(2)}` : "-";
       case "price_cn": return item.priceCny ? `¥${item.priceCny.toFixed(2)}` : "-";
       case "subtotal": return `¥${((item.priceCny || 0) * item.quantity).toFixed(2)}`;
       case "notes": return item.notes || "";
@@ -240,7 +233,7 @@ export default function PriceLists() {
     ctx.fillStyle = "#8b7355";
     ctx.font = "12px sans-serif";
     ctx.fillText(`导出时间: ${timestamp}`, 20, 55);
-    ctx.fillText(`汇率: 1 USD ≈ ${USD_TO_CNY} CNY, 1 JPY ≈ ${JPY_TO_CNY} CNY`, 20, 70);
+    ctx.fillText(`汇率: 1 USD ≈ ${USD_TO_CNY} CNY`, 20, 70);
 
     ctx.fillStyle = "#d4c4a8";
     ctx.fillRect(20, headerHeight, canvas.width - 40, tableHeaderHeight);
