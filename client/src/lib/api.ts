@@ -105,3 +105,69 @@ export function getKeyLegalities(legalities: Record<string, string> | null | und
     legal: legalities[key] === "legal",
   }));
 }
+
+/** Price History Types and API */
+
+export interface PriceHistoryEntry {
+  id: number;
+  scryfallId: string;
+  source: "scryfall" | "tcgtracking" | "justtcg" | "cardmarket" | "wisdomguild" | "manual";
+  condition: string;
+  priceUsd: number | null;
+  priceUsdFoil: number | null;
+  priceEur: number | null;
+  priceTix: number | null;
+  priceCny: number | null;
+  priceJpy: number | null;
+  exchangeRateUsdCny: number | null;
+  exchangeRateUsdJpy: number | null;
+  recordedAt: string;
+}
+
+/**
+ * Get price history for a card
+ * @param scryfallId Scryfall card ID
+ * @param days Number of days of history to fetch (default: 90)
+ */
+export async function getPriceHistory(
+  scryfallId: string,
+  days: number = 90
+): Promise<PriceHistoryEntry[]> {
+  const res = await fetch(`/api/price-history/${scryfallId}?days=${days}`);
+  if (!res.ok) {
+    console.error(`Failed to fetch price history: ${res.status}`);
+    return [];
+  }
+  return res.json();
+}
+
+/**
+ * Get the latest price snapshot for a card
+ * @param scryfallId Scryfall card ID
+ * @param source Optional: filter by specific source
+ */
+export async function getLatestPriceSnapshot(
+  scryfallId: string,
+  source?: string
+): Promise<PriceHistoryEntry | null> {
+  const url = source
+    ? `/api/price-history/${scryfallId}/latest?source=${source}`
+    : `/api/price-history/${scryfallId}/latest`;
+
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+/**
+ * Manually trigger a price snapshot for all followed cards (admin/debug)
+ */
+export async function triggerPriceSnapshot(): Promise<{ success: boolean; message: string }> {
+  const res = await fetch("/api/price-history/snapshot", {
+    method: "POST",
+  });
+  if (!res.ok) {
+    return { success: false, message: res.statusText };
+  }
+  return res.json();
+}

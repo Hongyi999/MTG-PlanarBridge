@@ -123,8 +123,27 @@ export const communityPosts = pgTable("community_posts", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const priceHistory = pgTable("price_history", {
+  id: serial("id").primaryKey(),
+  scryfallId: text("scryfall_id").notNull(),
+  source: text("source", {
+    enum: ["scryfall", "tcgtracking", "justtcg", "cardmarket", "wisdomguild", "manual"]
+  }).notNull().default("scryfall"),
+  condition: text("condition").default("NM"), // NM, LP, MP, HP, DMG for TCGTracking
+  priceUsd: real("price_usd"),
+  priceUsdFoil: real("price_usd_foil"),
+  priceEur: real("price_eur"),
+  priceTix: real("price_tix"),
+  priceCny: real("price_cny"),              // Direct CNY price (future: from Chinese sources)
+  priceJpy: real("price_jpy"),              // Direct JPY price (future: from Wisdom Guild)
+  exchangeRateUsdCny: real("exchange_rate_usd_cny"),  // Rate at time of snapshot
+  exchangeRateUsdJpy: real("exchange_rate_usd_jpy"),  // Rate at time of snapshot
+  recordedAt: timestamp("recorded_at").defaultNow().notNull(),
+});
+
 export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({ id: true });
 export const insertCommunityPostSchema = createInsertSchema(communityPosts).omit({ id: true, createdAt: true, likes: true, comments: true });
+export const insertPriceHistorySchema = createInsertSchema(priceHistory).omit({ id: true, recordedAt: true });
 
 export const insertUserCardSchema = createInsertSchema(userCards).omit({ id: true });
 export const insertPriceListSchema = createInsertSchema(priceLists).omit({ id: true, createdAt: true });
@@ -152,3 +171,5 @@ export type UserSetting = typeof userSettings.$inferSelect;
 export type InsertUserSetting = z.infer<typeof insertUserSettingsSchema>;
 export type CommunityPost = typeof communityPosts.$inferSelect;
 export type InsertCommunityPost = z.infer<typeof insertCommunityPostSchema>;
+export type PriceHistory = typeof priceHistory.$inferSelect;
+export type InsertPriceHistory = z.infer<typeof insertPriceHistorySchema>;

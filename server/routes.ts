@@ -5,6 +5,7 @@ import { z } from "zod";
 import path from "path";
 import fs from "fs";
 import { searchCards, getCardById, getCardByName, autocomplete, type ScryfallCard } from "./scryfall";
+import { snapshotFollowedCardPrices, snapshotSingleCard } from "./price-snapshot";
 
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
@@ -127,12 +128,43 @@ export async function registerRoutes(
     const parsed = insertFollowedCardSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json(parsed.error);
     const card = await storage.addFollowedCard(parsed.data);
+
+    // Take an immediate price snapshot for the newly followed card
+    snapshotSingleCard(card.scryfallId, card.cardName).catch((err) => {
+      console.error(`Failed to snapshot ${card.cardName} on follow:`, err);
+    });
+
     res.json(card);
   });
 
   app.delete("/api/followed-cards/:id", async (req, res) => {
     await storage.removeFollowedCard(parseInt(req.params.id));
     res.json({ success: true });
+  });
+
+  // Price History Endpoints
+  app.get("/api/price-history/:scryfallId", async (req, res) => {
+    const { scryfallId } = req.params;
+    const days = req.query.days ? parseInt(req.query.days as string) : 90;
+    const history = await storage.getPriceHistory(scryfallId, days);
+    res.json(history);
+  });
+
+  app.get("/api/price-history/:scryfallId/latest", async (req, res) => {
+    const { scryfallId } = req.params;
+    const source = req.query.source as string | undefined;
+    const snapshot = await storage.getLatestPriceSnapshot(scryfallId, source);
+    res.json(snapshot || null);
+  });
+
+  app.post("/api/price-history/snapshot", async (_req, res) => {
+    try {
+      // Manual trigger for price snapshot (admin/debugging)
+      await snapshotFollowedCardPrices();
+      res.json({ success: true, message: "Price snapshot completed" });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
+    }
   });
 
   app.get("/api/card-history", async (_req, res) => {

@@ -1,13 +1,14 @@
 import {
-  users, cards, posts, userCards, priceLists, priceListItems, followedCards, cardHistory, userSettings, communityPosts,
+  users, cards, posts, userCards, priceLists, priceListItems, followedCards, cardHistory, userSettings, communityPosts, priceHistory,
   type User, type InsertUser, type Card, type InsertCard, type Post, type InsertPost,
   type UserCard, type InsertUserCard,
   type PriceList, type InsertPriceList, type PriceListItem, type InsertPriceListItem,
   type FollowedCard, type InsertFollowedCard, type CardHistory, type InsertCardHistory,
-  type UserSetting, type CommunityPost, type InsertCommunityPost
+  type UserSetting, type CommunityPost, type InsertCommunityPost,
+  type PriceHistory, type InsertPriceHistory
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, ilike, or } from "drizzle-orm";
+import { eq, desc, ilike, or, and, gte, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -48,6 +49,10 @@ export interface IStorage {
   getCommunityPosts(): Promise<CommunityPost[]>;
   createCommunityPost(post: InsertCommunityPost): Promise<CommunityPost>;
   likeCommunityPost(id: number): Promise<CommunityPost | undefined>;
+
+  addPriceSnapshot(entry: InsertPriceHistory): Promise<PriceHistory>;
+  getPriceHistory(scryfallId: string, days?: number): Promise<PriceHistory[]>;
+  getLatestPriceSnapshot(scryfallId: string, source?: string): Promise<PriceHistory | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -236,6 +241,44 @@ export class DatabaseStorage implements IStorage {
     if (!existing) return undefined;
     const [updated] = await db.update(communityPosts).set({ likes: existing.likes + 1 }).where(eq(communityPosts.id, id)).returning();
     return updated;
+  }
+
+  async addPriceSnapshot(entry: InsertPriceHistory): Promise<PriceHistory> {
+    const [created] = await db.insert(priceHistory).values(entry).returning();
+    return created;
+  }
+
+  async getPriceHistory(scryfallId: string, days?: number): Promise<PriceHistory[]> {
+    const query = db.select().from(priceHistory)
+      .where(eq(priceHistory.scryfallId, scryfallId))
+      .orderBy(priceHistory.recordedAt);
+
+    if (days) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      return await query.where(
+        and(
+          eq(priceHistory.scryfallId, scryfallId),
+          gte(priceHistory.recordedAt, cutoffDate)
+        )
+      );
+    }
+
+    return await query;
+  }
+
+  async getLatestPriceSnapshot(scryfallId: string, source?: string): Promise<PriceHistory | undefined> {
+    const conditions = source
+      ? and(eq(priceHistory.scryfallId, scryfallId), eq(priceHistory.source, source))
+      : eq(priceHistory.scryfallId, scryfallId);
+
+    const [snapshot] = await db.select()
+      .from(priceHistory)
+      .where(conditions)
+      .orderBy(desc(priceHistory.recordedAt))
+      .limit(1);
+
+    return snapshot;
   }
 }
 

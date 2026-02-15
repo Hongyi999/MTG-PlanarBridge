@@ -75,6 +75,25 @@ app.use((req, res, next) => {
     // DB may not be ready yet, skip
   }
 
+  // Price snapshot scheduling
+  const { snapshotFollowedCardPrices } = await import("./price-snapshot");
+
+  // Initial snapshot after 30 seconds (let server finish startup)
+  setTimeout(() => {
+    log("Running initial price snapshot...", "price-snapshot");
+    snapshotFollowedCardPrices().catch((err) => {
+      log(`Initial snapshot failed: ${err.message}`, "price-snapshot");
+    });
+  }, 30000);
+
+  // Recurring snapshot every 6 hours
+  setInterval(() => {
+    log("Running scheduled price snapshot...", "price-snapshot");
+    snapshotFollowedCardPrices().catch((err) => {
+      log(`Scheduled snapshot failed: ${err.message}`, "price-snapshot");
+    });
+  }, 6 * 60 * 60 * 1000); // 6 hours in milliseconds
+
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
