@@ -1,0 +1,3 @@
+[submodule "server/fab-cards-data"]
+	path = server/fab-cards-data
+	url = https://github.com/the-fab-cube/flesh-and-blood-cards.git

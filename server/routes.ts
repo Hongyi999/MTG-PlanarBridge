@@ -7,6 +7,8 @@ import fs from "fs";
 import { searchCards, getCardById, getCardByName, autocomplete, type ScryfallCard } from "./scryfall";
 import { snapshotFollowedCardPrices, snapshotSingleCard } from "./price-snapshot";
 import session from "express-session";
+import { fabCardsCache } from "./fab-cards-cache";
+import type { FaBCardData } from "./fab-cards-types";
 
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
@@ -56,6 +58,38 @@ declare module "express-session" {
   interface SessionData {
     userId?: number;
   }
+}
+
+/**
+ * Map fab-cards-cache data to API response format
+ * Converts comprehensive fab-cards repository structure to simplified API format
+ */
+function mapFaBCardToAPI(card: FaBCardData) {
+  // Get the first printing for image and rarity
+  const firstPrinting = card.printings[0];
+
+  return {
+    identifier: firstPrinting?.id || card.unique_id.substring(0, 7),
+    name: card.name,
+    text: card.functional_text_plain || null,
+    cost: card.cost || null,
+    pitch: card.pitch || null,
+    power: card.power || null,
+    defense: card.defense || null,
+    health: card.health || null,
+    rarity: firstPrinting?.rarity || null,
+    keywords: card.card_keywords || [],
+    image: firstPrinting?.image_url || null,
+    printings: card.printings.map(p => ({
+      id: p.id,
+      set_id: p.set_id,
+      edition: p.edition,
+      image: p.image_url,
+      rarity: p.rarity,
+      tcgplayer_product_id: p.tcgplayer_product_id,
+    })),
+    prices: { usd: null, cny_converted: null },
+  };
 }
 
 export async function registerRoutes(
@@ -526,9 +560,7 @@ export async function registerRoutes(
 
   // ============ Flesh and Blood (FAB) Endpoints ============
 
-  const { searchFaBCards, getFaBCard } = await import("./fabdb");
-
-  // Search FAB cards via FaBDB
+  // Search FAB cards via in-memory cache
   app.get("/api/fab/cards/search", async (req, res) => {
     const q = req.query.q as string;
     const page = parseInt(req.query.page as string) || 1;
@@ -536,23 +568,8 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Query parameter 'q' is required" });
     }
     try {
-      const result = await searchFaBCards(q, page);
-      const rates = await getExchangeRates();
-      const cards = result.data.map(card => ({
-        identifier: card.identifier,
-        name: card.name,
-        text: card.text || null,
-        cost: card.cost || null,
-        pitch: card.pitch || null,
-        power: card.power || null,
-        defense: card.defense || null,
-        health: card.health || null,
-        rarity: card.rarity || null,
-        keywords: card.keywords || [],
-        image: card.printings?.[0]?.image || card.image || null,
-        printings: card.printings || [],
-        prices: { usd: null, cny_converted: null },
-      }));
+      const result = fabCardsCache.searchCards(q, page, 20);
+      const cards = result.data.map(mapFaBCardToAPI);
       res.json({
         cards,
         total_cards: result.total,
@@ -564,26 +581,12 @@ export async function registerRoutes(
     }
   });
 
-  // Get FAB card by identifier
+  // Get FAB card by identifier (e.g., "MST131", "ARC000")
   app.get("/api/fab/cards/:identifier", async (req, res) => {
     try {
-      const card = await getFaBCard(req.params.identifier);
+      const card = fabCardsCache.getCardByIdentifier(req.params.identifier);
       if (!card) return res.status(404).json({ message: "Card not found" });
-      res.json({
-        identifier: card.identifier,
-        name: card.name,
-        text: card.text || null,
-        cost: card.cost || null,
-        pitch: card.pitch || null,
-        power: card.power || null,
-        defense: card.defense || null,
-        health: card.health || null,
-        rarity: card.rarity || null,
-        keywords: card.keywords || [],
-        image: card.printings?.[0]?.image || card.image || null,
-        printings: card.printings || [],
-        prices: { usd: null, cny_converted: null },
-      });
+      res.json(mapFaBCardToAPI(card));
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Failed to fetch FAB card" });
     }
