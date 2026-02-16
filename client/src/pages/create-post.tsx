@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
-  ChevronLeft, Image as ImageIcon, Mic, MicOff, X, Search, Plus
+  ChevronLeft, Image as ImageIcon, Mic, MicOff, X, Search, Plus, Loader2
 } from "lucide-react";
-import { MOCK_CARDS } from "@/lib/mock-data";
+import { searchCards, type CardData } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,16 +31,20 @@ export default function CreatePost() {
   const [isListening, setIsListening] = useState(false);
   const [showCardPicker, setShowCardPicker] = useState(false);
   const [cardSearch, setCardSearch] = useState("");
-  const [selectedCard, setSelectedCard] = useState<typeof MOCK_CARDS[0] | null>(null);
+  const [selectedCard, setSelectedCard] = useState<CardData | null>(null);
   const [price, setPrice] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const filteredCards = MOCK_CARDS.filter(c =>
-    c.name_cn.includes(cardSearch) || c.name_en.toLowerCase().includes(cardSearch.toLowerCase())
-  );
+  const { data: cardResults, isLoading: cardSearchLoading } = useQuery({
+    queryKey: ["card-picker-search", cardSearch],
+    queryFn: () => searchCards(cardSearch),
+    enabled: cardSearch.length >= 2,
+    staleTime: 60000,
+  });
+  const filteredCards = cardResults?.cards || [];
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -132,7 +136,7 @@ export default function CreatePost() {
         content,
         type: postType,
         images: images.length > 0 ? images : null,
-        cardMockId: selectedCard?.id || null,
+        scryfallId: selectedCard?.scryfall_id || null,
         cardName: selectedCard?.name_cn || selectedCard?.name_en || null,
         cardImage: selectedCard?.image_uri || null,
         price: price ? parseFloat(price) : null,
@@ -296,12 +300,18 @@ export default function CreatePost() {
           <Card className="border-primary/20 bg-primary/5 p-3">
             <div className="flex gap-3 items-center">
               <div className="w-12 h-16 rounded overflow-hidden shadow-sm flex-shrink-0">
-                <img src={selectedCard.image_uri} className="w-full h-full object-cover" />
+                <img src={selectedCard.image_uri ?? ""} className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm truncate">{selectedCard.name_cn}</p>
+                <p className="font-bold text-sm truncate">{selectedCard.name_cn ?? selectedCard.name_en}</p>
                 <p className="text-[10px] text-muted-foreground">{selectedCard.name_en}</p>
-                <p className="text-xs font-mono font-bold text-primary mt-1">¥{selectedCard.prices.cny}</p>
+                <p className="text-xs font-mono font-bold text-primary mt-1">
+                  {selectedCard.prices.cny_converted != null
+                    ? `¥${selectedCard.prices.cny_converted.toFixed(2)}`
+                    : selectedCard.prices.usd != null
+                    ? `$${selectedCard.prices.usd.toFixed(2)}`
+                    : "N/A"}
+                </p>
               </div>
             </div>
           </Card>
@@ -336,29 +346,44 @@ export default function CreatePost() {
               />
             </div>
             <div className="space-y-2">
-              {filteredCards.map(card => (
-                <button
-                  key={card.id}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-primary/5 hover:border-primary/30 transition-all text-left"
-                  onClick={() => {
-                    setSelectedCard(card);
-                    setShowCardPicker(false);
-                    setCardSearch("");
-                  }}
-                  data-testid={`button-pick-card-${card.id}`}
-                >
-                  <div className="w-10 h-14 rounded overflow-hidden shadow-sm flex-shrink-0">
-                    <img src={card.image_uri} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm truncate">{card.name_cn}</p>
-                    <p className="text-[10px] text-muted-foreground">{card.name_en} · {card.set_code}</p>
-                  </div>
-                  <p className="font-mono text-sm font-bold text-primary">¥{card.prices.cny}</p>
-                </button>
-              ))}
-              {filteredCards.length === 0 && (
+              {cardSearchLoading && cardSearch.length >= 2 ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                filteredCards.map(card => (
+                  <button
+                    key={card.scryfall_id}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-primary/5 hover:border-primary/30 transition-all text-left"
+                    onClick={() => {
+                      setSelectedCard(card);
+                      setShowCardPicker(false);
+                      setCardSearch("");
+                    }}
+                    data-testid={`button-pick-card-${card.scryfall_id}`}
+                  >
+                    <div className="w-10 h-14 rounded overflow-hidden shadow-sm flex-shrink-0">
+                      <img src={card.image_uri ?? ""} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm truncate">{card.name_cn ?? card.name_en}</p>
+                      <p className="text-[10px] text-muted-foreground">{card.name_en} · {card.set_code}</p>
+                    </div>
+                    <p className="font-mono text-sm font-bold text-primary">
+                      {card.prices.cny_converted != null
+                        ? `¥${card.prices.cny_converted.toFixed(2)}`
+                        : card.prices.usd != null
+                        ? `$${card.prices.usd.toFixed(2)}`
+                        : "N/A"}
+                    </p>
+                  </button>
+                ))
+              )}
+              {!cardSearchLoading && filteredCards.length === 0 && cardSearch.length >= 2 && (
                 <p className="text-center py-6 text-sm text-muted-foreground">未找到匹配的卡牌</p>
+              )}
+              {cardSearch.length < 2 && (
+                <p className="text-center py-6 text-sm text-muted-foreground">请输入至少2个字符搜索</p>
               )}
             </div>
           </div>

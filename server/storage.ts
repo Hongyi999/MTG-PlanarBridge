@@ -1,13 +1,15 @@
 import {
-  users, cards, posts, userCards, priceLists, priceListItems, followedCards, cardHistory, userSettings, communityPosts,
+  users, cards, posts, userCards, priceLists, priceListItems, followedCards, cardHistory, userSettings, communityPosts, priceHistory, verificationCodes, messages,
   type User, type InsertUser, type Card, type InsertCard, type Post, type InsertPost,
   type UserCard, type InsertUserCard,
   type PriceList, type InsertPriceList, type PriceListItem, type InsertPriceListItem,
   type FollowedCard, type InsertFollowedCard, type CardHistory, type InsertCardHistory,
-  type UserSetting, type CommunityPost, type InsertCommunityPost
+  type UserSetting, type CommunityPost, type InsertCommunityPost,
+  type PriceHistory, type InsertPriceHistory,
+  type Message, type InsertMessage
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, ilike, or, and, gte, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -15,6 +17,9 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getCards(): Promise<Card[]>;
   getCard(id: number): Promise<Card | undefined>;
+  getCardByScryfallId(scryfallId: string): Promise<Card | undefined>;
+  upsertCard(cardData: Partial<InsertCard> & { scryfall_id: string; name_en: string }): Promise<Card>;
+  searchCardsCached(query: string): Promise<Card[]>;
   createCard(card: InsertCard): Promise<Card>;
   getPosts(): Promise<(Post & { user: User; card?: Card })[]>;
   createPost(post: InsertPost): Promise<Post>;
@@ -45,6 +50,20 @@ export interface IStorage {
   getCommunityPosts(): Promise<CommunityPost[]>;
   createCommunityPost(post: InsertCommunityPost): Promise<CommunityPost>;
   likeCommunityPost(id: number): Promise<CommunityPost | undefined>;
+
+  addPriceSnapshot(entry: InsertPriceHistory): Promise<PriceHistory>;
+  getPriceHistory(scryfallId: string, days?: number): Promise<PriceHistory[]>;
+  getLatestPriceSnapshot(scryfallId: string, source?: string): Promise<PriceHistory | undefined>;
+
+  getUserByPhone(phone: string): Promise<User | undefined>;
+  updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
+  saveVerificationCode(phone: string, code: string, expiresAt: Date): Promise<void>;
+  verifyCode(phone: string, code: string): Promise<boolean>;
+
+  getMessages(userId1: number, userId2: number): Promise<Message[]>;
+  getConversations(userId: number): Promise<{ user: User; lastMessage: Message; unreadCount: number }[]>;
+  sendMessage(msg: InsertMessage): Promise<Message>;
+  markMessagesRead(userId: number, senderId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -70,6 +89,34 @@ export class DatabaseStorage implements IStorage {
   async getCard(id: number): Promise<Card | undefined> {
     const [card] = await db.select().from(cards).where(eq(cards.id, id));
     return card;
+  }
+
+  async getCardByScryfallId(scryfallId: string): Promise<Card | undefined> {
+    const [card] = await db.select().from(cards).where(eq(cards.scryfall_id, scryfallId));
+    return card;
+  }
+
+  async upsertCard(cardData: Partial<InsertCard> & { scryfall_id: string; name_en: string }): Promise<Card> {
+    const existing = await this.getCardByScryfallId(cardData.scryfall_id);
+    if (existing) {
+      const [updated] = await db.update(cards)
+        .set({ ...cardData, cached_at: new Date() })
+        .where(eq(cards.scryfall_id, cardData.scryfall_id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(cards).values(cardData as InsertCard).returning();
+    return created;
+  }
+
+  async searchCardsCached(query: string): Promise<Card[]> {
+    const q = `%${query}%`;
+    return await db.select().from(cards)
+      .where(or(
+        ilike(cards.name_en, q),
+        ilike(cards.name_cn, q)
+      ))
+      .limit(20);
   }
 
   async createCard(insertCard: InsertCard): Promise<Card> {
@@ -165,8 +212,8 @@ export class DatabaseStorage implements IStorage {
     const all = await db.select().from(cardHistory).orderBy(desc(cardHistory.viewedAt));
     const seen = new Set<string>();
     return all.filter(entry => {
-      if (seen.has(entry.cardMockId)) return false;
-      seen.add(entry.cardMockId);
+      if (seen.has(entry.scryfallId)) return false;
+      seen.add(entry.scryfallId);
       return true;
     });
   }
@@ -190,6 +237,7 @@ export class DatabaseStorage implements IStorage {
     const [created] = await db.insert(userSettings).values({ key, value }).returning();
     return created;
   }
+
   async getCommunityPosts(): Promise<CommunityPost[]> {
     return await db.select().from(communityPosts).orderBy(desc(communityPosts.createdAt));
   }
@@ -204,6 +252,133 @@ export class DatabaseStorage implements IStorage {
     if (!existing) return undefined;
     const [updated] = await db.update(communityPosts).set({ likes: existing.likes + 1 }).where(eq(communityPosts.id, id)).returning();
     return updated;
+  }
+
+  async addPriceSnapshot(entry: InsertPriceHistory): Promise<PriceHistory> {
+    const [created] = await db.insert(priceHistory).values(entry).returning();
+    return created;
+  }
+
+  async getPriceHistory(scryfallId: string, days?: number): Promise<PriceHistory[]> {
+    const query = db.select().from(priceHistory)
+      .where(eq(priceHistory.scryfallId, scryfallId))
+      .orderBy(priceHistory.recordedAt);
+
+    if (days) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      return await query.where(
+        and(
+          eq(priceHistory.scryfallId, scryfallId),
+          gte(priceHistory.recordedAt, cutoffDate)
+        )
+      );
+    }
+
+    return await query;
+  }
+
+  async getLatestPriceSnapshot(scryfallId: string, source?: string): Promise<PriceHistory | undefined> {
+    const conditions = source
+      ? and(eq(priceHistory.scryfallId, scryfallId), eq(priceHistory.source, source))
+      : eq(priceHistory.scryfallId, scryfallId);
+
+    const [snapshot] = await db.select()
+      .from(priceHistory)
+      .where(conditions)
+      .orderBy(desc(priceHistory.recordedAt))
+      .limit(1);
+
+    return snapshot;
+  }
+
+  async getUserByPhone(phone: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.phone, phone));
+    return user;
+  }
+
+  async updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined> {
+    const [updated] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+    return updated;
+  }
+
+  async saveVerificationCode(phone: string, code: string, expiresAt: Date): Promise<void> {
+    await db.insert(verificationCodes).values({ phone, code, expiresAt });
+  }
+
+  async verifyCode(phone: string, code: string): Promise<boolean> {
+    const [record] = await db.select().from(verificationCodes)
+      .where(and(
+        eq(verificationCodes.phone, phone),
+        eq(verificationCodes.code, code),
+        eq(verificationCodes.used, false),
+        gte(verificationCodes.expiresAt, new Date())
+      ))
+      .orderBy(desc(verificationCodes.createdAt))
+      .limit(1);
+
+    if (!record) return false;
+
+    await db.update(verificationCodes)
+      .set({ used: true })
+      .where(eq(verificationCodes.id, record.id));
+
+    return true;
+  }
+
+  async getMessages(userId1: number, userId2: number): Promise<Message[]> {
+    return await db.select().from(messages)
+      .where(or(
+        and(eq(messages.senderId, userId1), eq(messages.receiverId, userId2)),
+        and(eq(messages.senderId, userId2), eq(messages.receiverId, userId1))
+      ))
+      .orderBy(messages.createdAt);
+  }
+
+  async getConversations(userId: number): Promise<{ user: User; lastMessage: Message; unreadCount: number }[]> {
+    // Get all messages involving this user
+    const allMessages = await db.select().from(messages)
+      .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
+      .orderBy(desc(messages.createdAt));
+
+    // Group by other user
+    const conversationMap = new Map<number, { lastMessage: Message; unreadCount: number }>();
+    for (const msg of allMessages) {
+      const otherId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+      if (!conversationMap.has(otherId)) {
+        conversationMap.set(otherId, { lastMessage: msg, unreadCount: 0 });
+      }
+      if (msg.receiverId === userId && !msg.read) {
+        const conv = conversationMap.get(otherId)!;
+        conv.unreadCount++;
+      }
+    }
+
+    // Fetch user details
+    const results: { user: User; lastMessage: Message; unreadCount: number }[] = [];
+    for (const [otherId, conv] of conversationMap) {
+      const user = await this.getUser(otherId);
+      if (user) {
+        results.push({ user, lastMessage: conv.lastMessage, unreadCount: conv.unreadCount });
+      }
+    }
+
+    return results;
+  }
+
+  async sendMessage(msg: InsertMessage): Promise<Message> {
+    const [created] = await db.insert(messages).values(msg).returning();
+    return created;
+  }
+
+  async markMessagesRead(userId: number, senderId: number): Promise<void> {
+    await db.update(messages)
+      .set({ read: true })
+      .where(and(
+        eq(messages.receiverId, userId),
+        eq(messages.senderId, senderId),
+        eq(messages.read, false)
+      ));
   }
 }
 

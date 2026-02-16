@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MOCK_CARDS } from "@/lib/mock-data";
+import { getCard, type CardData, formatPrice, getDisplayName, getKeyLegalities, getLatestPriceSnapshot } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,20 +10,33 @@ import { ChevronLeft, Share2, Heart, TrendingUp, TrendingDown, Settings2, Plus, 
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { PriceList, PriceListItem, FollowedCard } from "@shared/schema";
+import { PriceHistoryChart } from "@/components/price-history-chart";
 
 const ALL_SOURCES = [
-  { key: "us", label: "美国市场 (USD)", flag: "🇺🇸", desc: "TCGPlayer / Scryfall" },
-  { key: "jp", label: "日本市场 (JPY)", flag: "🇯🇵", desc: "Hareruya (晴屋)" },
-  { key: "cn", label: "中国市场 (CNY)", flag: "🇨🇳", desc: "综合均价" },
+  { key: "us", label: "美国市场 (USD)", flag: "\u{1F1FA}\u{1F1F8}", desc: "TCGPlayer / Scryfall" },
+  { key: "cn", label: "中国市场 (CNY)", flag: "\u{1F1E8}\u{1F1F3}", desc: "综合均价" },
 ];
 
 const SETTINGS_KEY = "price_sources";
+
+function formatCachedAt(cachedAt: string | null | undefined): string {
+  if (!cachedAt) return "暂无更新时间";
+  const cached = new Date(cachedAt);
+  const now = new Date();
+  const diffMs = now.getTime() - cached.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "刚刚更新";
+  if (diffMin < 60) return `${diffMin}分钟前更新`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}小时前更新`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}天前更新`;
+}
 
 export default function CardDetail() {
   const [match, params] = useRoute("/card/:id");
   const [, navigate] = useLocation();
   const id = params?.id;
-  const card = MOCK_CARDS.find(c => c.id === id) || MOCK_CARDS[0];
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showListPicker, setShowListPicker] = useState(false);
@@ -31,9 +44,15 @@ export default function CardDetail() {
   const [showCreateInline, setShowCreateInline] = useState(false);
   const [newListName, setNewListName] = useState("");
   const [showSourceManager, setShowSourceManager] = useState(false);
-  const [enabledSources, setEnabledSources] = useState<string[]>(["us", "jp", "cn"]);
+  const [enabledSources, setEnabledSources] = useState<string[]>(["us", "cn"]);
   const [pendingSources, setPendingSources] = useState<string[]>([]);
   const [showApplyAllDialog, setShowApplyAllDialog] = useState(false);
+
+  const { data: card, isLoading } = useQuery<CardData>({
+    queryKey: ["card", id],
+    queryFn: () => getCard(id!),
+    enabled: !!id,
+  });
 
   const { data: sourceSetting } = useQuery<{ key: string; value: string | null }>({
     queryKey: ["/api/settings", SETTINGS_KEY],
@@ -57,44 +76,53 @@ export default function CardDetail() {
     queryKey: ["/api/followed-cards"],
   });
 
-  useEffect(() => {
-    const alreadyFollowed = followedCards.some(f => f.cardMockId === card.id);
-    setIsFollowed(alreadyFollowed);
-  }, [followedCards, card.id]);
+  const { data: latestSnapshot } = useQuery({
+    queryKey: ["price-snapshot-latest", id],
+    queryFn: () => getLatestPriceSnapshot(id!, "scryfall"),
+    enabled: !!id && isFollowed,
+  });
 
   useEffect(() => {
+    if (!card) return;
+    const alreadyFollowed = followedCards.some(f => f.scryfallId === card.scryfall_id);
+    setIsFollowed(alreadyFollowed);
+  }, [followedCards, card]);
+
+  useEffect(() => {
+    if (!card) return;
     apiRequest("POST", "/api/card-history", {
-      cardMockId: card.id,
+      scryfallId: card.scryfall_id,
       cardName: card.name_en,
       cardNameCn: card.name_cn,
       cardImage: card.image_uri,
     }).catch(() => {});
-  }, [card.id]);
+  }, [card]);
 
   const addToList = useMutation({
     mutationFn: async (listId: number) => {
+      if (!card) throw new Error("Card not loaded");
       const listItems = await fetch(`/api/price-lists/${listId}/items`).then(r => r.json()) as PriceListItem[];
-      const alreadyExists = listItems.some((item: PriceListItem) => item.cardMockId === card.id);
+      const alreadyExists = listItems.some((item: PriceListItem) => item.scryfallId === card.scryfall_id);
       if (alreadyExists) {
         throw new Error("DUPLICATE");
       }
       return apiRequest("POST", `/api/price-lists/${listId}/items`, {
-        cardMockId: card.id,
+        scryfallId: card.scryfall_id,
         cardName: card.name_en,
         cardNameCn: card.name_cn,
         cardImage: card.image_uri,
         cardSetCode: card.set_code,
         quantity: 1,
         condition: "NM",
-        priceCny: card.prices.cny,
+        priceCny: card.prices.cny_converted,
         priceUsd: card.prices.usd,
-        priceJpy: card.prices.jpy,
+        priceJpy: card.prices.jpy_converted,
       });
     },
     onSuccess: () => {
       setShowListPicker(false);
       queryClient.invalidateQueries({ queryKey: ["/api/price-lists"] });
-      toast({ title: "添加成功", description: `${card.name_cn || card.name_en} 已添加到列表` });
+      toast({ title: "添加成功", description: `${card ? (card.name_cn || card.name_en) : ""} 已添加到列表` });
     },
     onError: (err: Error) => {
       if (err.message === "DUPLICATE") {
@@ -118,14 +146,15 @@ export default function CardDetail() {
 
   const followCard = useMutation({
     mutationFn: async () => {
+      if (!card) throw new Error("Card not loaded");
       if (isFollowed) {
-        const existing = followedCards.find(f => f.cardMockId === card.id);
+        const existing = followedCards.find(f => f.scryfallId === card.scryfall_id);
         if (existing) {
           return apiRequest("DELETE", `/api/followed-cards/${existing.id}`);
         }
       } else {
         return apiRequest("POST", "/api/followed-cards", {
-          cardMockId: card.id,
+          scryfallId: card.scryfall_id,
           cardName: card.name_en,
           cardNameCn: card.name_cn,
           cardImage: card.image_uri,
@@ -133,6 +162,7 @@ export default function CardDetail() {
       }
     },
     onSuccess: () => {
+      if (!card) return;
       const wasFollowed = isFollowed;
       setIsFollowed(!isFollowed);
       queryClient.invalidateQueries({ queryKey: ["/api/followed-cards"] });
@@ -203,6 +233,29 @@ export default function CardDetail() {
     }
   }, []);
 
+  if (isLoading || !card) {
+    return (
+      <div className="space-y-6 pb-24 bg-parchment/30">
+        <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur z-20 py-3 -mx-4 px-4 border-b border-border/50">
+          <Link href="/library">
+            <Button variant="ghost" size="icon" className="h-8 w-8" data-testid="button-back-library">
+              <ChevronLeft className="w-6 h-6" />
+            </Button>
+          </Link>
+          <h1 className="font-heading font-bold text-sm uppercase tracking-widest text-primary/80">卡牌详情</h1>
+          <div className="w-8" />
+        </div>
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">加载中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const legalities = getKeyLegalities(card.legalities);
+  const cachedAtLabel = formatCachedAt(card.cached_at);
+
   return (
     <div className="space-y-6 pb-24 bg-parchment/30" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur z-20 py-3 -mx-4 px-4 border-b border-border/50">
@@ -220,11 +273,11 @@ export default function CardDetail() {
       <div className="space-y-8 max-w-[400px] mx-auto">
         <div className="relative flex justify-center pt-4">
           <div className="relative w-[260px] aspect-[63/88] rounded-[4.5%] shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-transform duration-500 hover:scale-[1.02]">
-            <img src={card.image_uri} alt={card.name_en} className="w-full h-full object-cover rounded-[4.5%]" />
+            <img src={card.image_uri || ""} alt={card.name_en} className="w-full h-full object-cover rounded-[4.5%]" />
             <div className="absolute -bottom-4 left-1/2 -translate-x-1/2">
               <div className="flex items-center gap-1.5 bg-background border border-primary/20 px-4 py-1.5 rounded-full shadow-lg">
                 <div className={`w-2.5 h-2.5 rounded-full ${card.rarity === 'mythic' ? 'bg-orange-500 shadow-[0_0_8px_orange]' : 'bg-primary'}`} />
-                <span className="text-[10px] font-heading font-bold uppercase tracking-wider text-primary">{card.rarity}</span>
+                <span className="text-[10px] font-heading font-bold uppercase tracking-wider text-primary">{card.rarity || "common"}</span>
               </div>
             </div>
           </div>
@@ -233,28 +286,28 @@ export default function CardDetail() {
         <div className="space-y-4 text-center px-4 pt-4">
           <div className="space-y-1">
             <h2 className="text-2xl font-bold font-heading text-primary leading-tight" data-testid="text-card-name">{card.name_en}</h2>
-            <p className="text-sm text-muted-foreground font-medium">{card.name_cn} · {card.name_en.toLowerCase()}</p>
+            <p className="text-sm text-muted-foreground font-medium">{card.name_cn || ""} · {card.name_en.toLowerCase()}</p>
           </div>
 
           <div className="flex items-center justify-center gap-2 text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
-            <Badge variant="outline" className="bg-muted/50 border-none px-2 h-5">{card.type_line.split('—')[0]}</Badge>
+            <Badge variant="outline" className="bg-muted/50 border-none px-2 h-5">{(card.type_line || "").split('\u2014')[0]}</Badge>
             <span>·</span>
             <div className="flex items-center gap-1">
               <span className="w-3.5 h-3.5 flex items-center justify-center rounded-full bg-muted border border-border text-[8px] font-bold">1</span>
-              <span>{card.set_name} ({card.set_code}) #{card.collector_number}</span>
+              <span>{card.set_name || ""} ({card.set_code || ""}) #{card.collector_number || ""}</span>
             </div>
           </div>
 
           <Card className="bg-card/50 border-border/40 shadow-sm rounded-xl overflow-hidden mt-6">
             <CardContent className="p-5 text-left relative">
-              <p className="text-sm leading-relaxed font-sans font-medium text-foreground/80">{card.oracle_text}</p>
+              <p className="text-sm leading-relaxed font-sans font-medium text-foreground/80">{card.oracle_text || ""}</p>
             </CardContent>
           </Card>
 
-          <div className="flex justify-center gap-2 pt-2">
-            {['Standard', 'Pioneer', 'Modern', 'Commander'].map(f => (
-              <div key={f} className="flex items-center gap-1 px-2 py-0.5 rounded border text-[9px] font-bold bg-muted/30 text-muted-foreground border-border/50">
-                {f} ✅
+          <div className="flex justify-center gap-2 pt-2 flex-wrap">
+            {legalities.map(l => (
+              <div key={l.format} className={`flex items-center gap-1 px-2 py-0.5 rounded border text-[9px] font-bold ${l.legal ? 'bg-muted/30 text-muted-foreground border-border/50' : 'bg-red-50 text-red-400 border-red-200/50'}`}>
+                {l.format} {l.legal ? "\u2705" : "\u274C"}
               </div>
             ))}
           </div>
@@ -276,10 +329,10 @@ export default function CardDetail() {
               <Card className="border-border/60 bg-card/60 shadow-sm overflow-hidden">
                 <div className="bg-muted/20 px-3 py-1.5 border-b border-border/40 flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs">🇺🇸</span>
+                    <span className="text-xs">{"\u{1F1FA}\u{1F1F8}"}</span>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">美国市场 (USD)</span>
                   </div>
-                  <span className="text-[9px] text-muted-foreground">2小时前更新</span>
+                  <span className="text-[9px] text-muted-foreground">{cachedAtLabel}</span>
                 </div>
                 <CardContent className="p-4 space-y-4">
                   <div className="flex items-center justify-between">
@@ -291,47 +344,11 @@ export default function CardDetail() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-mono font-bold text-base leading-none" data-testid="text-price-usd">${card.prices.usd}</p>
-                      <p className="text-[9px] text-muted-foreground font-medium mt-1">≈ ¥{(card.prices.usd * 7.25).toFixed(2)} CNY</p>
-                      <p className="text-[10px] text-green-600 font-bold flex items-center justify-end gap-0.5 mt-0.5">
-                        <TrendingUp className="w-2.5 h-2.5" /> 2.4%
-                      </p>
+                      <p className="font-mono font-bold text-base leading-none" data-testid="text-price-usd">{formatPrice(card.prices.usd, "usd")}</p>
+                      {card.prices.cny_converted != null && (
+                        <p className="text-[9px] text-muted-foreground font-medium mt-1">估算 ≈ {formatPrice(card.prices.cny_converted, "cny")}</p>
+                      )}
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between pt-1 opacity-80">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-yellow-500/50" />
-                      <p className="text-xs font-medium">Scryfall 均价</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-mono font-bold text-sm">${(card.prices.usd * 0.98).toFixed(2)}</p>
-                      <p className="text-[9px] text-muted-foreground">≈ ¥{(card.prices.usd * 0.98 * 7.25).toFixed(2)}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {enabledSources.includes("jp") && (
-              <Card className="border-border/60 bg-card/60 shadow-sm overflow-hidden">
-                <div className="bg-muted/20 px-3 py-1.5 border-b border-border/40 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">🇯🇵</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">日本市场 (JPY)</span>
-                  </div>
-                  <span className="text-[9px] text-muted-foreground">今日 09:30 更新</span>
-                </div>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" />
-                    <div>
-                      <p className="text-xs font-bold">Hareruya (晴屋)</p>
-                      <p className="text-[9px] text-muted-foreground">NM · 日文</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono font-bold text-base leading-none">¥{card.prices.jpy.toLocaleString()}</p>
-                    <p className="text-[9px] text-muted-foreground font-medium mt-1">≈ ¥{(card.prices.jpy * 0.048).toFixed(1)} CNY</p>
                   </div>
                 </CardContent>
               </Card>
@@ -341,24 +358,21 @@ export default function CardDetail() {
               <Card className="border-primary/20 bg-primary/[0.02] shadow-sm overflow-hidden border">
                 <div className="bg-primary/5 px-3 py-1.5 border-b border-primary/10 flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs">🇨🇳</span>
+                    <span className="text-xs">{"\u{1F1E8}\u{1F1F3}"}</span>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-primary/80">中国市场 (CNY)</span>
                   </div>
-                  <span className="text-[9px] text-primary/60">实时更新</span>
+                  <span className="text-[9px] text-primary/60">估算价格</span>
                 </div>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]" />
                     <div>
                       <p className="text-xs font-bold text-primary">综合均价</p>
-                      <p className="text-[9px] text-muted-foreground">社区与全网采集</p>
+                      <p className="text-[9px] text-muted-foreground">基于汇率换算</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-mono font-bold text-base leading-none text-primary" data-testid="text-price-cny">¥{card.prices.cny.toFixed(2)}</p>
-                    <p className="text-[10px] text-red-500 font-bold flex items-center justify-end gap-0.5 mt-1">
-                      <TrendingDown className="w-2.5 h-2.5" /> 1.2%
-                    </p>
+                    <p className="font-mono font-bold text-base leading-none text-primary" data-testid="text-price-cny">{formatPrice(card.prices.cny_converted, "cny")}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -370,6 +384,28 @@ export default function CardDetail() {
                 <Button variant="link" size="sm" onClick={openSourceManager}>点击管理来源</Button>
               </div>
             )}
+          </div>
+
+          {/* Price Trend Chart */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-heading font-bold text-xs uppercase tracking-widest flex items-center gap-2 text-primary">
+                <span className="w-5 h-5 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <TrendingUp className="w-3 h-3" />
+                </span>
+                价格趋势
+              </h3>
+              {latestSnapshot && card.prices.usd != null && latestSnapshot.priceUsd != null && (
+                <PriceChangeBadge
+                  currentPrice={card.prices.usd}
+                  snapshotPrice={latestSnapshot.priceUsd}
+                />
+              )}
+            </div>
+            <PriceHistoryChart
+              scryfallId={card.scryfall_id}
+              cardName={card.name_cn || card.name_en}
+            />
           </div>
         </div>
       </div>
@@ -551,5 +587,35 @@ function ListIcon({ className }: { className?: string }) {
       <line x1="3" y1="12" x2="3.01" y2="12" />
       <line x1="3" y1="18" x2="3.01" y2="18" />
     </svg>
+  );
+}
+
+function PriceChangeBadge({ currentPrice, snapshotPrice }: { currentPrice: number; snapshotPrice: number }) {
+  if (snapshotPrice === 0) return null;
+  const change = ((currentPrice - snapshotPrice) / snapshotPrice) * 100;
+  const absChange = Math.abs(change);
+
+  if (absChange < 0.5) {
+    return (
+      <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+        -- 持平
+      </span>
+    );
+  }
+
+  if (change > 0) {
+    return (
+      <span className="text-[10px] font-mono font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+        <TrendingUp className="w-3 h-3" />
+        +{absChange.toFixed(1)}%
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-[10px] font-mono font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+      <TrendingDown className="w-3 h-3" />
+      -{absChange.toFixed(1)}%
+    </span>
   );
 }

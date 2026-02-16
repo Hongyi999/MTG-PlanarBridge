@@ -60,7 +60,59 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize FAB cards cache
+  log("Loading FAB cards cache...", "fab-cache");
+  const { fabCardsCache } = await import("./fab-cards-cache");
+  try {
+    await fabCardsCache.load();
+    const stats = fabCardsCache.getStats();
+    log(`FAB cache loaded: ${stats.totalCards} cards, ${stats.totalSets} sets`, "fab-cache");
+  } catch (err: any) {
+    log(`FAB cache load failed: ${err.message}`, "fab-cache");
+    log("Continuing without FAB card data...", "fab-cache");
+  }
+
   await registerRoutes(app);
+
+  // Initialize default exchange rates if not set
+  try {
+    const { storage } = await import("./storage");
+    const cnySetting = await storage.getSetting("usd_to_cny");
+    if (!cnySetting) {
+      await storage.setSetting("usd_to_cny", "7.25");
+      await storage.setSetting("usd_to_jpy", "150");
+      log("Initialized default exchange rates");
+    }
+  } catch (e) {
+    // DB may not be ready yet, skip
+  }
+
+  // Price snapshot scheduling
+  const { snapshotFollowedCardPrices } = await import("./price-snapshot");
+
+  // Initial snapshot after 30 seconds (let server finish startup)
+  setTimeout(() => {
+    log("Running initial price snapshot...", "price-snapshot");
+    snapshotFollowedCardPrices().catch((err) => {
+      log(`Initial snapshot failed: ${err.message}`, "price-snapshot");
+    });
+  }, 30000);
+
+  // Recurring snapshot every 6 hours
+  setInterval(() => {
+    log("Running scheduled price snapshot...", "price-snapshot");
+    snapshotFollowedCardPrices().catch((err) => {
+      log(`Scheduled snapshot failed: ${err.message}`, "price-snapshot");
+    });
+  }, 6 * 60 * 60 * 1000); // 6 hours in milliseconds
+
+  // Reload FAB cache daily to get latest card data
+  setInterval(() => {
+    log("Reloading FAB cards cache...", "fab-cache");
+    fabCardsCache.reload().catch((err) => {
+      log(`FAB cache reload failed: ${err.message}`, "fab-cache");
+    });
+  }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
