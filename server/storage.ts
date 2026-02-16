@@ -1,50 +1,65 @@
 import {
-  users, cards, posts, userCards, priceLists, priceListItems, followedCards, cardHistory, userSettings, communityPosts,
+  users, cards, posts, userCards, priceLists, priceListItems, followedCards, cardHistory, userSettings, communityPosts, importJobs,
   type User, type InsertUser, type Card, type InsertCard, type Post, type InsertPost,
   type UserCard, type InsertUserCard,
   type PriceList, type InsertPriceList, type PriceListItem, type InsertPriceListItem,
   type FollowedCard, type InsertFollowedCard, type CardHistory, type InsertCardHistory,
-  type UserSetting, type CommunityPost, type InsertCommunityPost
+  type UserSetting, type CommunityPost, type InsertCommunityPost, type ImportJob
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, ilike, and, or, sql, count } from "drizzle-orm";
+
+export interface SearchCardsParams {
+  game: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+  setCode?: string;
+  rarity?: string;
+}
+
+export interface SearchCardsResult {
+  cards: Card[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  getCards(): Promise<Card[]>;
+  searchCards(params: SearchCardsParams): Promise<SearchCardsResult>;
   getCard(id: number): Promise<Card | undefined>;
+  getCardByExternalId(externalId: string): Promise<Card | undefined>;
   createCard(card: InsertCard): Promise<Card>;
+  getCardCount(game: string): Promise<number>;
+  getSets(game: string): Promise<Array<{ set_code: string; set_name: string | null; count: number }>>;
   getPosts(): Promise<(Post & { user: User; card?: Card })[]>;
   createPost(post: InsertPost): Promise<Post>;
   getUserCards(userId: number): Promise<(UserCard & { card: Card })[]>;
   addUserCard(userCard: InsertUserCard): Promise<UserCard>;
-
   getPriceLists(): Promise<PriceList[]>;
   getPriceList(id: number): Promise<PriceList | undefined>;
   createPriceList(list: InsertPriceList): Promise<PriceList>;
   updatePriceList(id: number, data: Partial<InsertPriceList>): Promise<PriceList | undefined>;
   deletePriceList(id: number): Promise<void>;
-
   getPriceListItems(listId: number): Promise<PriceListItem[]>;
   addPriceListItem(item: InsertPriceListItem): Promise<PriceListItem>;
   updatePriceListItem(id: number, data: Partial<InsertPriceListItem>): Promise<PriceListItem | undefined>;
   removePriceListItem(id: number): Promise<void>;
-
   getFollowedCards(): Promise<FollowedCard[]>;
   addFollowedCard(card: InsertFollowedCard): Promise<FollowedCard>;
   removeFollowedCard(id: number): Promise<void>;
-
   getCardHistory(): Promise<CardHistory[]>;
   addCardHistory(entry: InsertCardHistory): Promise<CardHistory>;
-
   getSetting(key: string): Promise<UserSetting | undefined>;
   setSetting(key: string, value: string): Promise<UserSetting>;
-
   getCommunityPosts(): Promise<CommunityPost[]>;
   createCommunityPost(post: InsertCommunityPost): Promise<CommunityPost>;
   likeCommunityPost(id: number): Promise<CommunityPost | undefined>;
+  getImportJobs(): Promise<ImportJob[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -63,8 +78,47 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getCards(): Promise<Card[]> {
-    return await db.select().from(cards);
+  async searchCards(params: SearchCardsParams): Promise<SearchCardsResult> {
+    const { game, search, page = 1, limit = 50, setCode, rarity } = params;
+    const offset = (page - 1) * limit;
+
+    const conditions = [sql`${cards.game} = ${game}`];
+
+    if (search && search.trim()) {
+      conditions.push(
+        or(
+          ilike(cards.name_en, `%${search}%`),
+          ilike(cards.name_cn, `%${search}%`),
+        )!
+      );
+    }
+
+    if (setCode) {
+      conditions.push(ilike(cards.set_code, setCode));
+    }
+
+    if (rarity) {
+      conditions.push(eq(cards.rarity, rarity));
+    }
+
+    const whereClause = and(...conditions);
+
+    const [totalResult] = await db.select({ count: count() }).from(cards).where(whereClause);
+    const total = totalResult?.count || 0;
+
+    const result = await db.select().from(cards)
+      .where(whereClause)
+      .orderBy(cards.name_en)
+      .limit(limit)
+      .offset(offset);
+
+    return {
+      cards: result,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async getCard(id: number): Promise<Card | undefined> {
@@ -72,9 +126,34 @@ export class DatabaseStorage implements IStorage {
     return card;
   }
 
+  async getCardByExternalId(externalId: string): Promise<Card | undefined> {
+    const [card] = await db.select().from(cards).where(eq(cards.externalId, externalId));
+    return card;
+  }
+
   async createCard(insertCard: InsertCard): Promise<Card> {
     const [card] = await db.insert(cards).values(insertCard).returning();
     return card;
+  }
+
+  async getCardCount(game: string): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(cards).where(sql`${cards.game} = ${game}`);
+    return result?.count || 0;
+  }
+
+  async getSets(game: string): Promise<Array<{ set_code: string; set_name: string | null; count: number }>> {
+    const result = await db
+      .select({
+        set_code: cards.set_code,
+        set_name: cards.set_name,
+        count: count(),
+      })
+      .from(cards)
+      .where(sql`${cards.game} = ${game}`)
+      .groupBy(cards.set_code, cards.set_name)
+      .orderBy(cards.set_code);
+
+    return result.filter(r => r.set_code !== null) as Array<{ set_code: string; set_name: string | null; count: number }>;
   }
 
   async getPosts(): Promise<(Post & { user: User; card?: Card })[]> {
@@ -190,6 +269,7 @@ export class DatabaseStorage implements IStorage {
     const [created] = await db.insert(userSettings).values({ key, value }).returning();
     return created;
   }
+
   async getCommunityPosts(): Promise<CommunityPost[]> {
     return await db.select().from(communityPosts).orderBy(desc(communityPosts.createdAt));
   }
@@ -204,6 +284,10 @@ export class DatabaseStorage implements IStorage {
     if (!existing) return undefined;
     const [updated] = await db.update(communityPosts).set({ likes: existing.likes + 1 }).where(eq(communityPosts.id, id)).returning();
     return updated;
+  }
+
+  async getImportJobs(): Promise<ImportJob[]> {
+    return await db.select().from(importJobs).orderBy(desc(importJobs.startedAt)).limit(20);
   }
 }
 

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, real, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -11,19 +11,61 @@ export const users = pgTable("users", {
 
 export const cards = pgTable("cards", {
   id: serial("id").primaryKey(),
-  scryfall_id: text("scryfall_id").notNull().unique(),
+  game: text("game", { enum: ["mtg", "fab"] }).notNull().default("mtg"),
+  externalId: text("external_id").notNull(),
   name_en: text("name_en").notNull(),
   name_cn: text("name_cn"),
   image_uri: text("image_uri"),
   set_code: text("set_code"),
+  set_name: text("set_name"),
   collector_number: text("collector_number"),
+  rarity: text("rarity"),
+  type_line: text("type_line"),
   prices: jsonb("prices").$type<{
     usd?: number;
     usd_foil?: number;
     cny?: number;
     jpy?: number;
+    tcgtracking_usd?: number;
+    justtcg_usd?: number;
   }>(),
-});
+  mtgData: jsonb("mtg_data").$type<{
+    mana_cost?: string;
+    cmc?: number;
+    colors?: string[];
+    color_identity?: string[];
+    oracle_text?: string;
+    power?: string;
+    toughness?: string;
+    keywords?: string[];
+    legalities?: Record<string, string>;
+    scryfall_id?: string;
+    tcgplayer_id?: number;
+  }>(),
+  fabData: jsonb("fab_data").$type<{
+    pitch?: number;
+    cost?: number;
+    power?: number;
+    defense?: number;
+    health?: number;
+    intelligence?: number;
+    types?: string[];
+    keywords?: string[];
+    card_keywords?: string[];
+    abilities?: string[];
+    talent?: string;
+    hero_class?: string;
+    text?: string;
+    unique_id?: string;
+    tcgplayer_id?: number;
+  }>(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("cards_game_external_id_idx").on(table.game, table.externalId),
+  index("cards_game_idx").on(table.game),
+  index("cards_name_en_idx").on(table.name_en),
+  index("cards_set_code_idx").on(table.set_code),
+]);
 
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
@@ -45,7 +87,7 @@ export const userCards = pgTable("user_cards", {
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
-export const insertCardSchema = createInsertSchema(cards).omit({ id: true });
+export const insertCardSchema = createInsertSchema(cards).omit({ id: true, updatedAt: true });
 export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true, likes: true, comments: true });
 export const priceLists = pgTable("price_lists", {
   id: serial("id").primaryKey(),
@@ -111,6 +153,18 @@ export const communityPosts = pgTable("community_posts", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const importJobs = pgTable("import_jobs", {
+  id: serial("id").primaryKey(),
+  source: text("source").notNull(),
+  game: text("game", { enum: ["mtg", "fab"] }).notNull(),
+  status: text("status", { enum: ["running", "completed", "failed"] }).notNull().default("running"),
+  totalCards: integer("total_cards").default(0),
+  importedCards: integer("imported_cards").default(0),
+  error: text("error"),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
 export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({ id: true });
 export const insertCommunityPostSchema = createInsertSchema(communityPosts).omit({ id: true, createdAt: true, likes: true, comments: true });
 
@@ -140,3 +194,4 @@ export type UserSetting = typeof userSettings.$inferSelect;
 export type InsertUserSetting = z.infer<typeof insertUserSettingsSchema>;
 export type CommunityPost = typeof communityPosts.$inferSelect;
 export type InsertCommunityPost = z.infer<typeof insertCommunityPostSchema>;
+export type ImportJob = typeof importJobs.$inferSelect;

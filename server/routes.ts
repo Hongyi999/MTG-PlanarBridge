@@ -12,15 +12,64 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 export async function registerRoutes(
   app: Express
 ): Promise<Server> {
-  app.get("/api/cards", async (_req, res) => {
-    const cards = await storage.getCards();
-    res.json(cards);
+  app.get("/api/cards", async (req, res) => {
+    const game = (req.query.game as string) || "mtg";
+    const search = (req.query.search as string) || "";
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const setCode = req.query.set_code as string;
+    const rarity = req.query.rarity as string;
+    const result = await storage.searchCards({ game, search, page, limit, setCode, rarity });
+    res.json(result);
   });
 
   app.get("/api/cards/:id", async (req, res) => {
     const card = await storage.getCard(parseInt(req.params.id));
     if (!card) return res.status(404).json({ message: "Card not found" });
     res.json(card);
+  });
+
+  app.get("/api/cards/external/:externalId", async (req, res) => {
+    const card = await storage.getCardByExternalId(req.params.externalId);
+    if (!card) return res.status(404).json({ message: "Card not found" });
+    res.json(card);
+  });
+
+  app.get("/api/sets", async (req, res) => {
+    const game = (req.query.game as string) || "mtg";
+    const sets = await storage.getSets(game);
+    res.json(sets);
+  });
+
+  app.get("/api/import/status", async (_req, res) => {
+    const jobs = await storage.getImportJobs();
+    res.json(jobs);
+  });
+
+  app.post("/api/import/mtg", async (_req, res) => {
+    const existingCount = await storage.getCardCount("mtg");
+    if (existingCount > 0) {
+      return res.json({ message: "MTG cards already imported", count: existingCount });
+    }
+    res.json({ message: "MTG import started", status: "running" });
+    const { importMTGCards } = await import("./import-mtg");
+    importMTGCards().catch(err => console.error("MTG import failed:", err));
+  });
+
+  app.post("/api/import/fab", async (_req, res) => {
+    const existingCount = await storage.getCardCount("fab");
+    if (existingCount > 0) {
+      return res.json({ message: "FAB cards already imported", count: existingCount });
+    }
+    res.json({ message: "FAB import started", status: "running" });
+    const { importFABCards } = await import("./import-fab");
+    importFABCards().catch(err => console.error("FAB import failed:", err));
+  });
+
+  app.post("/api/import/prices/mtg", async (_req, res) => {
+    res.json({ message: "MTG price update started", status: "running" });
+    const { updateMTGPricesFromTCGTracking } = await import("./import-prices");
+    updateMTGPricesFromTCGTracking().catch(err => console.error("Price update failed:", err));
   });
 
   app.get("/api/posts", async (_req, res) => {

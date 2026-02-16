@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MOCK_CARDS } from "@/lib/mock-data";
+import { getCard } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, Share2, Heart, TrendingUp, TrendingDown, Settings2, Plus, X, Check } from "lucide-react";
+import { ChevronLeft, Share2, Heart, TrendingUp, TrendingDown, Settings2, Plus, X, Check, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { PriceList, PriceListItem, FollowedCard } from "@shared/schema";
+import type { Card as DBCard, PriceList, PriceListItem, FollowedCard } from "@shared/schema";
 
 const ALL_SOURCES = [
   { key: "us", label: "美国市场 (USD)", flag: "🇺🇸", desc: "TCGPlayer / Scryfall" },
@@ -23,7 +23,6 @@ export default function CardDetail() {
   const [match, params] = useRoute("/card/:id");
   const [, navigate] = useLocation();
   const id = params?.id;
-  const card = MOCK_CARDS.find(c => c.id === id) || MOCK_CARDS[0];
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showListPicker, setShowListPicker] = useState(false);
@@ -34,6 +33,16 @@ export default function CardDetail() {
   const [enabledSources, setEnabledSources] = useState<string[]>(["us", "jp", "cn"]);
   const [pendingSources, setPendingSources] = useState<string[]>([]);
   const [showApplyAllDialog, setShowApplyAllDialog] = useState(false);
+
+  const { data: card, isLoading: cardLoading } = useQuery<DBCard>({
+    queryKey: ["/api/cards", id],
+    queryFn: () => getCard(Number(id)),
+    enabled: !!id,
+  });
+
+  const prices = (card?.prices || {}) as any;
+  const mtgData = (card?.mtgData || {}) as any;
+  const fabData = (card?.fabData || {}) as any;
 
   const { data: sourceSetting } = useQuery<{ key: string; value: string | null }>({
     queryKey: ["/api/settings", SETTINGS_KEY],
@@ -58,43 +67,48 @@ export default function CardDetail() {
   });
 
   useEffect(() => {
-    const alreadyFollowed = followedCards.some(f => f.cardMockId === card.id);
-    setIsFollowed(alreadyFollowed);
-  }, [followedCards, card.id]);
+    if (card) {
+      const alreadyFollowed = followedCards.some(f => f.cardMockId === String(card.id));
+      setIsFollowed(alreadyFollowed);
+    }
+  }, [followedCards, card]);
 
   useEffect(() => {
-    apiRequest("POST", "/api/card-history", {
-      cardMockId: card.id,
-      cardName: card.name_en,
-      cardNameCn: card.name_cn,
-      cardImage: card.image_uri,
-    }).catch(() => {});
-  }, [card.id]);
+    if (card) {
+      apiRequest("POST", "/api/card-history", {
+        cardMockId: String(card.id),
+        cardName: card.name_en,
+        cardNameCn: card.name_cn,
+        cardImage: card.image_uri,
+      }).catch(() => {});
+    }
+  }, [card?.id]);
 
   const addToList = useMutation({
     mutationFn: async (listId: number) => {
+      if (!card) throw new Error("No card");
       const listItems = await fetch(`/api/price-lists/${listId}/items`).then(r => r.json()) as PriceListItem[];
-      const alreadyExists = listItems.some((item: PriceListItem) => item.cardMockId === card.id);
+      const alreadyExists = listItems.some((item: PriceListItem) => item.cardMockId === String(card.id));
       if (alreadyExists) {
         throw new Error("DUPLICATE");
       }
       return apiRequest("POST", `/api/price-lists/${listId}/items`, {
-        cardMockId: card.id,
+        cardMockId: String(card.id),
         cardName: card.name_en,
         cardNameCn: card.name_cn,
         cardImage: card.image_uri,
         cardSetCode: card.set_code,
         quantity: 1,
         condition: "NM",
-        priceCny: card.prices.cny,
-        priceUsd: card.prices.usd,
-        priceJpy: card.prices.jpy,
+        priceCny: prices.cny || 0,
+        priceUsd: prices.usd || 0,
+        priceJpy: prices.jpy || 0,
       });
     },
     onSuccess: () => {
       setShowListPicker(false);
       queryClient.invalidateQueries({ queryKey: ["/api/price-lists"] });
-      toast({ title: "添加成功", description: `${card.name_cn || card.name_en} 已添加到列表` });
+      toast({ title: "添加成功", description: `${card?.name_cn || card?.name_en} 已添加到列表` });
     },
     onError: (err: Error) => {
       if (err.message === "DUPLICATE") {
@@ -118,14 +132,15 @@ export default function CardDetail() {
 
   const followCard = useMutation({
     mutationFn: async () => {
+      if (!card) return;
       if (isFollowed) {
-        const existing = followedCards.find(f => f.cardMockId === card.id);
+        const existing = followedCards.find(f => f.cardMockId === String(card.id));
         if (existing) {
           return apiRequest("DELETE", `/api/followed-cards/${existing.id}`);
         }
       } else {
         return apiRequest("POST", "/api/followed-cards", {
-          cardMockId: card.id,
+          cardMockId: String(card.id),
           cardName: card.name_en,
           cardNameCn: card.name_cn,
           cardImage: card.image_uri,
@@ -138,7 +153,7 @@ export default function CardDetail() {
       queryClient.invalidateQueries({ queryKey: ["/api/followed-cards"] });
       toast({
         title: wasFollowed ? "已取消关注" : "已关注",
-        description: wasFollowed ? `不再跟踪 ${card.name_cn || card.name_en} 价格` : `将持续跟踪 ${card.name_cn || card.name_en} 价格趋势`,
+        description: wasFollowed ? `不再跟踪 ${card?.name_cn || card?.name_en} 价格` : `将持续跟踪 ${card?.name_cn || card?.name_en} 价格趋势`,
       });
     },
   });
@@ -203,28 +218,53 @@ export default function CardDetail() {
     }
   }, []);
 
+  if (cardLoading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!card) {
+    return (
+      <div className="text-center py-32">
+        <p className="text-muted-foreground">未找到该卡牌</p>
+        <Link href="/library">
+          <Button variant="link" className="mt-2">返回卡库</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const displayName = card.name_cn || card.name_en;
+  const typeLine = mtgData.type_line || fabData.type_text || "";
+  const oracleText = mtgData.oracle_text || fabData.functional_text || "";
+
   return (
     <div className="space-y-6 pb-24 bg-parchment/30" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur z-20 py-3 -mx-4 px-4 border-b border-border/50">
         <Link href="/library">
-          <Button variant="ghost" size="icon" className="h-8 w-8" data-testid="button-back-library">
+          <Button variant="ghost" size="icon" className="h-8 w-8">
             <ChevronLeft className="w-6 h-6" />
           </Button>
         </Link>
         <h1 className="font-heading font-bold text-sm uppercase tracking-widest text-primary/80">卡牌详情</h1>
-        <Button variant="ghost" size="icon" className="h-8 w-8" data-testid="button-share">
+        <Button variant="ghost" size="icon" className="h-8 w-8">
           <Share2 className="w-5 h-5" />
         </Button>
       </div>
 
       <div className="space-y-8 max-w-[400px] mx-auto">
         <div className="relative flex justify-center pt-4">
-          <div className="relative w-[260px] aspect-[63/88] rounded-[4.5%] shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-transform duration-500 hover:scale-[1.02]">
-            <img src={card.image_uri} alt={card.name_en} className="w-full h-full object-cover rounded-[4.5%]" />
+          <div className="relative w-[260px] aspect-[63/88] rounded-[4.5%] shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-transform duration-500 hover:scale-[1.02] bg-muted">
+            {card.image_uri && (
+              <img src={card.image_uri} alt={card.name_en} className="w-full h-full object-cover rounded-[4.5%]" loading="lazy" />
+            )}
             <div className="absolute -bottom-4 left-1/2 -translate-x-1/2">
               <div className="flex items-center gap-1.5 bg-background border border-primary/20 px-4 py-1.5 rounded-full shadow-lg">
                 <div className={`w-2.5 h-2.5 rounded-full ${card.rarity === 'mythic' ? 'bg-orange-500 shadow-[0_0_8px_orange]' : 'bg-primary'}`} />
-                <span className="text-[10px] font-heading font-bold uppercase tracking-wider text-primary">{card.rarity}</span>
+                <span className="text-[10px] font-heading font-bold uppercase tracking-wider text-primary">{card.rarity || "Unknown"}</span>
               </div>
             </div>
           </div>
@@ -232,32 +272,44 @@ export default function CardDetail() {
 
         <div className="space-y-4 text-center px-4 pt-4">
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold font-heading text-primary leading-tight" data-testid="text-card-name">{card.name_en}</h2>
-            <p className="text-sm text-muted-foreground font-medium">{card.name_cn} · {card.name_en.toLowerCase()}</p>
+            <h2 className="text-2xl font-bold font-heading text-primary leading-tight">{card.name_en}</h2>
+            {card.name_cn && (
+              <p className="text-sm text-muted-foreground font-medium">{card.name_cn}</p>
+            )}
           </div>
 
-          <div className="flex items-center justify-center gap-2 text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
-            <Badge variant="outline" className="bg-muted/50 border-none px-2 h-5">{card.type_line.split('—')[0]}</Badge>
-            <span>·</span>
-            <div className="flex items-center gap-1">
-              <span className="w-3.5 h-3.5 flex items-center justify-center rounded-full bg-muted border border-border text-[8px] font-bold">1</span>
-              <span>{card.set_name} ({card.set_code}) #{card.collector_number}</span>
+          <div className="flex items-center justify-center gap-2 text-[10px] font-medium text-muted-foreground uppercase tracking-widest flex-wrap">
+            {typeLine && (
+              <Badge variant="outline" className="bg-muted/50 border-none px-2 h-5">{typeLine.split('—')[0]}</Badge>
+            )}
+            {card.set_code && (
+              <>
+                <span>·</span>
+                <span>{card.set_name || ""} ({card.set_code}) {card.collector_number ? `#${card.collector_number}` : ""}</span>
+              </>
+            )}
+          </div>
+
+          {oracleText && (
+            <Card className="bg-card/50 border-border/40 shadow-sm rounded-xl overflow-hidden mt-6">
+              <CardContent className="p-5 text-left relative">
+                <p className="text-sm leading-relaxed font-sans font-medium text-foreground/80">{oracleText}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {card.game === "mtg" && mtgData.legalities && (
+            <div className="flex justify-center gap-2 pt-2 flex-wrap">
+              {Object.entries(mtgData.legalities as Record<string, string>)
+                .filter(([, v]) => v === "legal")
+                .slice(0, 4)
+                .map(([format]) => (
+                  <div key={format} className="flex items-center gap-1 px-2 py-0.5 rounded border text-[9px] font-bold bg-muted/30 text-muted-foreground border-border/50 capitalize">
+                    {format}
+                  </div>
+                ))}
             </div>
-          </div>
-
-          <Card className="bg-card/50 border-border/40 shadow-sm rounded-xl overflow-hidden mt-6">
-            <CardContent className="p-5 text-left relative">
-              <p className="text-sm leading-relaxed font-sans font-medium text-foreground/80">{card.oracle_text}</p>
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-center gap-2 pt-2">
-            {['Standard', 'Pioneer', 'Modern', 'Commander'].map(f => (
-              <div key={f} className="flex items-center gap-1 px-2 py-0.5 rounded border text-[9px] font-bold bg-muted/30 text-muted-foreground border-border/50">
-                {f} ✅
-              </div>
-            ))}
-          </div>
+          )}
         </div>
 
         <div className="px-4 space-y-4">
@@ -266,108 +318,63 @@ export default function CardDetail() {
               <span className="w-5 h-5 flex items-center justify-center rounded-full bg-primary/10 text-primary">$</span>
               市场价格
             </h3>
-            <Button variant="ghost" size="sm" className="h-6 text-[10px] font-heading uppercase text-muted-foreground gap-1" onClick={openSourceManager} data-testid="button-manage-sources">
+            <Button variant="ghost" size="sm" className="h-6 text-[10px] font-heading uppercase text-muted-foreground gap-1" onClick={openSourceManager}>
               管理来源 <Settings2 className="w-3 h-3" />
             </Button>
           </div>
 
           <div className="space-y-3">
-            {enabledSources.includes("us") && (
+            {enabledSources.includes("us") && prices.usd && (
               <Card className="border-border/60 bg-card/60 shadow-sm overflow-hidden">
                 <div className="bg-muted/20 px-3 py-1.5 border-b border-border/40 flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <span className="text-xs">🇺🇸</span>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">美国市场 (USD)</span>
                   </div>
-                  <span className="text-[9px] text-muted-foreground">2小时前更新</span>
                 </div>
                 <CardContent className="p-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" />
                       <div>
-                        <p className="text-xs font-bold">TCGPlayer 市场价</p>
-                        <p className="text-[9px] text-muted-foreground">近薄 (NM) · 英文</p>
+                        <p className="text-xs font-bold">市场价</p>
+                        <p className="text-[9px] text-muted-foreground">NM · English</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-mono font-bold text-base leading-none" data-testid="text-price-usd">${card.prices.usd}</p>
-                      <p className="text-[9px] text-muted-foreground font-medium mt-1">≈ ¥{(card.prices.usd * 7.25).toFixed(2)} CNY</p>
-                      <p className="text-[10px] text-green-600 font-bold flex items-center justify-end gap-0.5 mt-0.5">
-                        <TrendingUp className="w-2.5 h-2.5" /> 2.4%
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between pt-1 opacity-80">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-yellow-500/50" />
-                      <p className="text-xs font-medium">Scryfall 均价</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-mono font-bold text-sm">${(card.prices.usd * 0.98).toFixed(2)}</p>
-                      <p className="text-[9px] text-muted-foreground">≈ ¥{(card.prices.usd * 0.98 * 7.25).toFixed(2)}</p>
+                      <p className="font-mono font-bold text-base leading-none">${prices.usd}</p>
+                      <p className="text-[9px] text-muted-foreground font-medium mt-1">≈ ¥{(Number(prices.usd) * 7.25).toFixed(2)} CNY</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {enabledSources.includes("jp") && (
-              <Card className="border-border/60 bg-card/60 shadow-sm overflow-hidden">
-                <div className="bg-muted/20 px-3 py-1.5 border-b border-border/40 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs">🇯🇵</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">日本市场 (JPY)</span>
-                  </div>
-                  <span className="text-[9px] text-muted-foreground">今日 09:30 更新</span>
-                </div>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" />
-                    <div>
-                      <p className="text-xs font-bold">Hareruya (晴屋)</p>
-                      <p className="text-[9px] text-muted-foreground">NM · 日文</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono font-bold text-base leading-none">¥{card.prices.jpy.toLocaleString()}</p>
-                    <p className="text-[9px] text-muted-foreground font-medium mt-1">≈ ¥{(card.prices.jpy * 0.048).toFixed(1)} CNY</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {enabledSources.includes("cn") && (
+            {enabledSources.includes("cn") && prices.cny && (
               <Card className="border-primary/20 bg-primary/[0.02] shadow-sm overflow-hidden border">
                 <div className="bg-primary/5 px-3 py-1.5 border-b border-primary/10 flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <span className="text-xs">🇨🇳</span>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-primary/80">中国市场 (CNY)</span>
                   </div>
-                  <span className="text-[9px] text-primary/60">实时更新</span>
                 </div>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]" />
                     <div>
                       <p className="text-xs font-bold text-primary">综合均价</p>
-                      <p className="text-[9px] text-muted-foreground">社区与全网采集</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-mono font-bold text-base leading-none text-primary" data-testid="text-price-cny">¥{card.prices.cny.toFixed(2)}</p>
-                    <p className="text-[10px] text-red-500 font-bold flex items-center justify-end gap-0.5 mt-1">
-                      <TrendingDown className="w-2.5 h-2.5" /> 1.2%
-                    </p>
+                    <p className="font-mono font-bold text-base leading-none text-primary">¥{Number(prices.cny).toFixed(2)}</p>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {enabledSources.length === 0 && (
+            {!prices.usd && !prices.cny && (
               <div className="text-center py-8 text-muted-foreground text-sm">
-                <p>未选择任何价格来源</p>
-                <Button variant="link" size="sm" onClick={openSourceManager}>点击管理来源</Button>
+                <p>暂无价格数据</p>
               </div>
             )}
           </div>
@@ -389,7 +396,6 @@ export default function CardDetail() {
                   onChange={e => setNewListName(e.target.value)}
                   className="h-9"
                   autoFocus
-                  data-testid="input-inline-new-list"
                 />
                 <div className="flex gap-2">
                   <Button
@@ -397,7 +403,6 @@ export default function CardDetail() {
                     className="flex-1"
                     disabled={!newListName.trim() || createListInline.isPending}
                     onClick={() => createListInline.mutate(newListName.trim())}
-                    data-testid="button-confirm-inline-create"
                   >
                     创建并添加
                   </Button>
@@ -410,7 +415,6 @@ export default function CardDetail() {
               <button
                 className="w-full flex items-center gap-3 p-3 rounded-lg border border-dashed border-primary/30 hover:bg-primary/5 transition-all text-left text-primary"
                 onClick={() => setShowCreateInline(true)}
-                data-testid="button-new-list-inline"
               >
                 <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
                   <Plus className="w-4 h-4" />
@@ -431,7 +435,6 @@ export default function CardDetail() {
                     className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-primary/5 hover:border-primary/30 transition-all text-left"
                     onClick={() => addToList.mutate(list.id)}
                     disabled={addToList.isPending}
-                    data-testid={`button-add-to-list-${list.id}`}
                   >
                     <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                       {list.name[0]}
@@ -459,7 +462,6 @@ export default function CardDetail() {
                     key={src.key}
                     className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all ${isOn ? 'border-primary/40 bg-primary/5' : 'border-border opacity-50'}`}
                     onClick={() => togglePendingSource(src.key)}
-                    data-testid={`button-source-${src.key}`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-lg">{src.flag}</span>
@@ -475,7 +477,7 @@ export default function CardDetail() {
                 );
               })}
             </div>
-            <Button className="w-full" onClick={confirmSourceChanges} data-testid="button-confirm-sources">
+            <Button className="w-full" onClick={confirmSourceChanges}>
               确认设置
             </Button>
           </div>
@@ -488,13 +490,13 @@ export default function CardDetail() {
             <h3 className="font-heading font-bold text-base text-center">应用到全部卡牌？</h3>
             <p className="text-sm text-muted-foreground text-center">是否将此价格来源设置应用到所有卡牌的详情页？</p>
             <div className="flex gap-3">
-              <Button className="flex-1" onClick={applyToAll} data-testid="button-apply-all">
+              <Button className="flex-1" onClick={applyToAll}>
                 应用到全部
               </Button>
               <Button variant="outline" className="flex-1" onClick={() => {
                 setShowApplyAllDialog(false);
                 toast({ title: "已保存", description: "价格来源设置仅应用到当前卡牌" });
-              }} data-testid="button-apply-current">
+              }}>
                 仅当前卡牌
               </Button>
             </div>
@@ -506,7 +508,6 @@ export default function CardDetail() {
         <button
           className="flex flex-col items-center gap-1 w-12 text-muted-foreground hover:text-primary transition-colors"
           onClick={() => navigate("/history")}
-          data-testid="button-history"
         >
           <HistoryIcon className="w-5 h-5" />
           <span className="text-[9px] font-bold">足迹</span>
@@ -514,14 +515,12 @@ export default function CardDetail() {
         <Button
           className="flex-1 bg-secondary hover:bg-secondary/90 text-white font-heading text-sm h-11 rounded-lg gap-2 shadow-lg shadow-secondary/20"
           onClick={() => setShowListPicker(true)}
-          data-testid="button-add-to-list"
         >
           <ListIcon className="w-4 h-4" /> 加入列表
         </Button>
         <button
           className={`flex flex-col items-center gap-1 w-12 transition-colors ${isFollowed ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'}`}
           onClick={() => followCard.mutate()}
-          data-testid="button-follow"
         >
           <Heart className={`w-5 h-5 ${isFollowed ? 'fill-current' : ''}`} />
           <span className="text-[9px] font-bold">{isFollowed ? '已关注' : '关注'}</span>

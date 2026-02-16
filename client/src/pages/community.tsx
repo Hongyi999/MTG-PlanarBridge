@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { MOCK_POSTS, MOCK_CARDS } from "@/lib/mock-data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -61,47 +60,29 @@ export default function Community() {
     },
   });
 
-  const allPosts = [
-    ...dbPosts.map(p => ({
-      id: `db-${p.id}`,
-      dbId: p.id,
-      user: { name: p.authorName, avatar: p.authorAvatar || "" },
-      content: p.content,
-      type: p.type as string,
-      timestamp: timeAgo(p.createdAt),
-      likes: p.likes,
-      comments: p.comments,
-      images: p.images || [],
-      cardMockId: p.cardMockId,
-      cardName: p.cardName,
-      cardImage: p.cardImage,
-      price: p.price,
-      isDb: true,
-    })),
-    ...MOCK_POSTS.map(p => ({
-      id: p.id,
-      dbId: null as number | null,
-      user: p.user,
-      content: p.content,
-      type: p.type,
-      timestamp: p.timestamp,
-      likes: p.likes,
-      comments: p.comments,
-      images: [] as string[],
-      cardMockId: p.card_attachment || null,
-      cardName: null as string | null,
-      cardImage: null as string | null,
-      price: null as number | null,
-      isDb: false,
-    })),
-  ];
+  const allPosts = dbPosts.map(p => ({
+    id: `db-${p.id}`,
+    dbId: p.id,
+    user: { name: p.authorName, avatar: p.authorAvatar || "" },
+    content: p.content,
+    type: p.type as string,
+    timestamp: timeAgo(p.createdAt),
+    likes: p.likes,
+    comments: p.comments,
+    images: p.images || [],
+    cardMockId: p.cardMockId,
+    cardName: p.cardName,
+    cardImage: p.cardImage,
+    price: p.price,
+    isDb: true,
+  }));
 
   const filteredPosts = activeTab === "all" ? allPosts : allPosts.filter(p => p.type === activeTab);
 
   const renderPost = (post: typeof allPosts[0]) => {
     const typeInfo = TYPE_LABELS[post.type] || TYPE_LABELS.discussion;
     const borderColor = BORDER_COLORS[post.type] || "";
-    const attachedCard = post.cardMockId ? MOCK_CARDS.find(c => c.id === post.cardMockId) : null;
+    const attachedCard = null;
 
     return (
       <Card key={post.id} className={`border-border/40 bg-card/40 backdrop-blur-sm rounded-2xl shadow-sm overflow-hidden group ${borderColor ? `border-l-4 ${borderColor}` : ""}`} data-testid={`card-post-${post.id}`}>
@@ -134,16 +115,14 @@ export default function Community() {
             </div>
           )}
 
-          {(attachedCard || post.cardImage) && (
+          {post.cardImage && (
             <div className="border border-border/60 rounded-xl p-3 bg-background/60 shadow-inner flex gap-3 items-center">
               <div className="w-12 h-16 rounded-md overflow-hidden shadow-md flex-shrink-0">
-                <img src={attachedCard?.image_uri || post.cardImage || ""} className="w-full h-full object-cover" />
+                <img src={post.cardImage || ""} className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0 space-y-0.5">
-                <p className="font-bold text-sm truncate">{attachedCard?.name_cn || post.cardName}</p>
-                {attachedCard && <p className="text-[10px] text-muted-foreground">{attachedCard.name_en}</p>}
+                <p className="font-bold text-sm truncate">{post.cardName}</p>
                 <div className="flex items-center justify-between pt-0.5">
-                  {attachedCard && <p className="text-xs font-mono font-bold text-primary">参考价 ¥{attachedCard.prices.cny}</p>}
                   {post.price && <p className="text-xs font-mono font-bold text-green-600">报价 ¥{post.price}</p>}
                 </div>
               </div>

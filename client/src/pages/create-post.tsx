@@ -8,7 +8,9 @@ import { Card } from "@/components/ui/card";
 import {
   ChevronLeft, Image as ImageIcon, Mic, MicOff, X, Search, Plus
 } from "lucide-react";
-import { MOCK_CARDS } from "@/lib/mock-data";
+import { useQuery } from "@tanstack/react-query";
+import { searchCards } from "@/lib/api";
+import { useGame } from "@/lib/game-context";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,16 +33,21 @@ export default function CreatePost() {
   const [isListening, setIsListening] = useState(false);
   const [showCardPicker, setShowCardPicker] = useState(false);
   const [cardSearch, setCardSearch] = useState("");
-  const [selectedCard, setSelectedCard] = useState<typeof MOCK_CARDS[0] | null>(null);
+  const [selectedCard, setSelectedCard] = useState<import("@shared/schema").Card | null>(null);
   const [price, setPrice] = useState("");
+  const { game } = useGame();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const filteredCards = MOCK_CARDS.filter(c =>
-    c.name_cn.includes(cardSearch) || c.name_en.toLowerCase().includes(cardSearch.toLowerCase())
-  );
+  const { data: cardResults } = useQuery({
+    queryKey: ["/api/cards", game, cardSearch, "picker"],
+    queryFn: () => searchCards({ game, search: cardSearch, limit: 20 }),
+    enabled: showCardPicker && cardSearch.length > 0,
+  });
+
+  const filteredCards = cardResults?.cards || [];
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -296,12 +303,12 @@ export default function CreatePost() {
           <Card className="border-primary/20 bg-primary/5 p-3">
             <div className="flex gap-3 items-center">
               <div className="w-12 h-16 rounded overflow-hidden shadow-sm flex-shrink-0">
-                <img src={selectedCard.image_uri} className="w-full h-full object-cover" />
+                <img src={selectedCard.image_uri || ""} className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm truncate">{selectedCard.name_cn}</p>
+                <p className="font-bold text-sm truncate">{selectedCard.name_cn || selectedCard.name_en}</p>
                 <p className="text-[10px] text-muted-foreground">{selectedCard.name_en}</p>
-                <p className="text-xs font-mono font-bold text-primary mt-1">¥{selectedCard.prices.cny}</p>
+                {(selectedCard.prices as any)?.cny && <p className="text-xs font-mono font-bold text-primary mt-1">¥{(selectedCard.prices as any).cny}</p>}
               </div>
             </div>
           </Card>
@@ -348,13 +355,13 @@ export default function CreatePost() {
                   data-testid={`button-pick-card-${card.id}`}
                 >
                   <div className="w-10 h-14 rounded overflow-hidden shadow-sm flex-shrink-0">
-                    <img src={card.image_uri} className="w-full h-full object-cover" />
+                    <img src={card.image_uri || ""} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm truncate">{card.name_cn}</p>
+                    <p className="font-bold text-sm truncate">{card.name_cn || card.name_en}</p>
                     <p className="text-[10px] text-muted-foreground">{card.name_en} · {card.set_code}</p>
                   </div>
-                  <p className="font-mono text-sm font-bold text-primary">¥{card.prices.cny}</p>
+                  <p className="font-mono text-sm font-bold text-primary">{(card.prices as any)?.cny ? `¥${(card.prices as any).cny}` : ""}</p>
                 </button>
               ))}
               {filteredCards.length === 0 && (

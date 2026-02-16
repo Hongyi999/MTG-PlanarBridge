@@ -2,6 +2,7 @@ import { Switch, Route, Link, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { GameProvider, useGame } from "@/lib/game-context";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Library from "@/pages/library";
@@ -12,6 +13,57 @@ import PriceLists from "@/pages/price-lists";
 import CardHistoryPage from "@/pages/card-history-page";
 import CreatePost from "@/pages/create-post";
 import { Home as HomeIcon, Search, Users, User } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+function GameSelector() {
+  const { game, setGame } = useGame();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 rounded-full px-3 py-1.5 border border-primary/20 transition-colors">
+          <span className="text-xs font-bold text-primary uppercase tracking-wider">
+            {game === "mtg" ? "MTG" : "FAB"}
+          </span>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className="text-primary">
+            <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[200px]">
+        <DropdownMenuItem
+          onClick={() => setGame("mtg")}
+          className={game === "mtg" ? "bg-primary/10 font-bold" : ""}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-lg">🃏</span>
+            <div>
+              <p className="font-medium text-sm">Magic: The Gathering</p>
+              <p className="text-[10px] text-muted-foreground">万智牌</p>
+            </div>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setGame("fab")}
+          className={game === "fab" ? "bg-primary/10 font-bold" : ""}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-lg">⚔️</span>
+            <div>
+              <p className="font-medium text-sm">Flesh and Blood</p>
+              <p className="text-[10px] text-muted-foreground">血肉搏斗</p>
+            </div>
+          </div>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -28,7 +80,8 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background font-sans pb-20 max-w-[500px] mx-auto shadow-2xl relative overflow-x-hidden border-x border-border/50">
-      <header className="sticky top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur border-b border-border z-50 flex items-center px-4 justify-end">
+      <header className="sticky top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur border-b border-border z-50 flex items-center px-4 justify-between">
+        <GameSelector />
         <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-full px-3 py-1 border border-border/50">
           <div className="w-1.5 h-1.5 rounded-full bg-foreground/20" />
           <div className="w-1.5 h-1.5 rounded-full bg-foreground/20" />
@@ -89,8 +142,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster />
-      <Router />
+      <GameProvider>
+        <Toaster />
+        <Router />
+      </GameProvider>
     </QueryClientProvider>
   );
 }

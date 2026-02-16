@@ -1,12 +1,20 @@
-import { Card } from "@/lib/mock-data";
+import type { Card as DBCard } from "@shared/schema";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 interface MTGCardProps {
-  card: Card;
+  card: DBCard;
   variant?: "list" | "grid";
   showPrice?: boolean;
+}
+
+function getDisplayPrice(card: DBCard): string | null {
+  const prices = card.prices as any;
+  if (!prices) return null;
+  if (prices.cny) return `¥${prices.cny}`;
+  if (prices.usd) return `$${prices.usd}`;
+  if (prices.tcgtracking_usd) return `$${prices.tcgtracking_usd}`;
+  return null;
 }
 
 export function MTGCard({ card, variant = "grid", showPrice = true }: MTGCardProps) {
@@ -14,25 +22,28 @@ export function MTGCard({ card, variant = "grid", showPrice = true }: MTGCardPro
     return (
       <Link href={`/card/${card.id}`}>
         <div className="flex gap-4 p-3 rounded-lg border border-border bg-card hover:bg-accent/5 transition-colors cursor-pointer group">
-          <div className="w-16 h-24 flex-shrink-0 relative overflow-hidden rounded-sm shadow-sm">
-            <img 
-              src={card.image_uri} 
-              alt={card.name_en} 
-              className="w-full h-full object-cover transition-transform group-hover:scale-110"
-            />
+          <div className="w-16 h-24 flex-shrink-0 relative overflow-hidden rounded-sm shadow-sm bg-muted">
+            {card.image_uri && (
+              <img
+                src={card.image_uri}
+                alt={card.name_en}
+                className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                loading="lazy"
+              />
+            )}
           </div>
           <div className="flex-1 flex flex-col justify-between py-1">
             <div>
-              <h3 className="font-semibold text-foreground line-clamp-1">{card.name_cn}</h3>
+              <h3 className="font-semibold text-foreground line-clamp-1">{card.name_cn || card.name_en}</h3>
               <p className="text-xs text-muted-foreground line-clamp-1">{card.name_en}</p>
             </div>
             <div className="flex items-center justify-between mt-2">
               <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal border-primary/20 text-primary">
-                {card.set_code}
+                {card.set_code || card.game.toUpperCase()}
               </Badge>
-              {showPrice && (
+              {showPrice && getDisplayPrice(card) && (
                 <div className="text-right">
-                  <span className="font-mono font-medium text-primary">¥{card.prices.cny}</span>
+                  <span className="font-mono font-medium text-primary">{getDisplayPrice(card)}</span>
                 </div>
               )}
             </div>
@@ -45,22 +56,25 @@ export function MTGCard({ card, variant = "grid", showPrice = true }: MTGCardPro
   return (
     <Link href={`/card/${card.id}`}>
       <div className="group relative flex flex-col gap-2 cursor-pointer">
-        <div className="relative aspect-[63/88] rounded-xl overflow-hidden shadow-md border border-black/5 transition-all group-hover:shadow-lg group-hover:-translate-y-1">
-          <img 
-            src={card.image_uri} 
-            alt={card.name_en} 
-            className="w-full h-full object-cover"
-          />
+        <div className="relative aspect-[63/88] rounded-xl overflow-hidden shadow-md border border-black/5 transition-all group-hover:shadow-lg group-hover:-translate-y-1 bg-muted">
+          {card.image_uri && (
+            <img
+              src={card.image_uri}
+              alt={card.name_en}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-             <span className="text-white font-medium text-sm">{card.name_cn}</span>
+            <span className="text-white font-medium text-sm">{card.name_cn || card.name_en}</span>
           </div>
         </div>
-        {showPrice && (
-          <div className="flex justify-between items-center px-1">
-            <span className="text-xs text-muted-foreground">{card.set_code}</span>
-            <span className="font-mono font-medium text-sm text-primary">¥{card.prices.cny}</span>
-          </div>
-        )}
+        <div className="flex justify-between items-center px-1">
+          <span className="text-xs text-muted-foreground line-clamp-1">{card.set_code || ""}</span>
+          {showPrice && getDisplayPrice(card) && (
+            <span className="font-mono font-medium text-sm text-primary">{getDisplayPrice(card)}</span>
+          )}
+        </div>
       </div>
     </Link>
   );
