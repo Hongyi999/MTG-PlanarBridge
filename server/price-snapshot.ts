@@ -180,6 +180,54 @@ async function snapshotFromWisdomGuild(
 }
 
 /**
+ * Record a price snapshot from JustTCG (optional, requires API key)
+ */
+async function snapshotFromJustTCG(
+  scryfallId: string,
+  cardName: string,
+  exchangeRates: { usdToCny: number; usdToJpy: number }
+): Promise<void> {
+  const apiKey = process.env.JUSTTCG_API_KEY;
+  if (!apiKey) return; // Silently skip if not configured
+
+  try {
+    // JustTCG uses TCGPlayer IDs, but we search by name for now
+    const { searchCardByName } = await import("./tcgtracking");
+    const results = await searchCardByName(cardName);
+
+    if (results.length === 0) return;
+
+    const card = results[0];
+    // Try to get a TCGPlayer ID from the result if available
+    const tcgplayerId = (card as any).tcgplayerId || (card as any).id;
+
+    if (!tcgplayerId) return;
+
+    const justTCGCard = await getJustTCGPrice(tcgplayerId);
+
+    if (!justTCGCard || !justTCGCard.price) return;
+
+    await storage.addPriceSnapshot({
+      scryfallId,
+      source: "justtcg",
+      condition: justTCGCard.condition || "NM",
+      priceUsd: justTCGCard.price,
+      priceUsdFoil: null,
+      priceEur: null,
+      priceTix: null,
+      priceCny: null,
+      priceJpy: null,
+      exchangeRateUsdCny: exchangeRates.usdToCny,
+      exchangeRateUsdJpy: exchangeRates.usdToJpy,
+    });
+
+    log(`JustTCG snapshot recorded: ${cardName} - $${justTCGCard.price}`);
+  } catch (error: any) {
+    log(`JustTCG snapshot failed for ${cardName}: ${error.message}`, "error");
+  }
+}
+
+/**
  * Snapshot all followed cards from all available sources
  */
 export async function snapshotFollowedCardPrices(): Promise<void> {
@@ -215,6 +263,7 @@ export async function snapshotFollowedCardPrices(): Promise<void> {
         // Record snapshots from all sources
         await snapshotFromScryfall(followedCard.scryfallId, followedCard.cardName, exchangeRates);
         await snapshotFromTCGTracking(followedCard.scryfallId, followedCard.cardName, exchangeRates);
+        await snapshotFromJustTCG(followedCard.scryfallId, followedCard.cardName, exchangeRates);
         await snapshotFromWisdomGuild(followedCard.scryfallId, followedCard.cardName, exchangeRates);
 
         snapshotCount++;
@@ -243,6 +292,7 @@ export async function snapshotSingleCard(scryfallId: string, cardName: string): 
   await Promise.all([
     snapshotFromScryfall(scryfallId, cardName, exchangeRates),
     snapshotFromTCGTracking(scryfallId, cardName, exchangeRates),
+    snapshotFromJustTCG(scryfallId, cardName, exchangeRates),
     snapshotFromWisdomGuild(scryfallId, cardName, exchangeRates),
   ]);
 }

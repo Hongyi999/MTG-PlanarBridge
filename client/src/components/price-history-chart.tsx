@@ -3,9 +3,9 @@
  *
  * Displays multi-currency price trends for MTG cards using Recharts.
  * Features:
- * - Multiple currency lines (USD, CNY estimated, JPY estimated/real)
+ * - Multiple source lines (Scryfall, TCGTracking, JustTCG)
+ * - CNY estimated price line
  * - Time period selector (7d / 30d / 90d / All)
- * - Multi-source data overlay (Scryfall vs TCGTracking)
  * - Interactive tooltips with date, price, and source info
  * - Empty state when no data available
  */
@@ -27,26 +27,22 @@ interface PriceHistoryChartProps {
 interface ChartDataPoint {
   date: string;
   timestamp: number;
-  // USD prices
+  // USD prices from different sources
   usdScryfall: number | null;
   usdTCGTracking: number | null;
+  usdJustTCG: number | null;
   // CNY (estimated from USD * exchangeRate)
   cnyEstimated: number | null;
-  // JPY (estimated or real from Wisdom Guild)
-  jpyEstimated: number | null;
-  jpyReal: number | null;
 }
 
 const SOURCE_COLORS = {
   scryfall: "hsl(var(--chart-1))",
   tcgtracking: "hsl(var(--chart-2))",
-  wisdomguild: "hsl(var(--chart-3))",
+  justtcg: "hsl(var(--chart-3))",
 };
 
 const CURRENCY_COLORS = {
-  usd: "hsl(142, 76%, 36%)",      // Green
   cny: "hsl(24, 95%, 53%)",       // Orange
-  jpy: "hsl(221, 83%, 53%)",      // Blue
 };
 
 export function PriceHistoryChart({ scryfallId, cardName }: PriceHistoryChartProps) {
@@ -63,18 +59,14 @@ export function PriceHistoryChart({ scryfallId, cardName }: PriceHistoryChartPro
     const cnyEstimated = usd && entry.exchangeRateUsdCny
       ? usd * entry.exchangeRateUsdCny
       : null;
-    const jpyEstimated = usd && entry.exchangeRateUsdJpy
-      ? usd * entry.exchangeRateUsdJpy
-      : null;
 
     return {
       date: format(new Date(entry.recordedAt), "MM/dd"),
       timestamp: new Date(entry.recordedAt).getTime(),
       usdScryfall: entry.source === "scryfall" ? entry.priceUsd : null,
       usdTCGTracking: entry.source === "tcgtracking" ? entry.priceUsd : null,
+      usdJustTCG: entry.source === "justtcg" ? entry.priceUsd : null,
       cnyEstimated,
-      jpyEstimated,
-      jpyReal: entry.source === "wisdomguild" ? entry.priceJpy : null,
     };
   });
 
@@ -84,9 +76,8 @@ export function PriceHistoryChart({ scryfallId, cardName }: PriceHistoryChartPro
     if (existing) {
       if (point.usdScryfall) existing.usdScryfall = point.usdScryfall;
       if (point.usdTCGTracking) existing.usdTCGTracking = point.usdTCGTracking;
+      if (point.usdJustTCG) existing.usdJustTCG = point.usdJustTCG;
       if (point.cnyEstimated) existing.cnyEstimated = point.cnyEstimated;
-      if (point.jpyEstimated) existing.jpyEstimated = point.jpyEstimated;
-      if (point.jpyReal) existing.jpyReal = point.jpyReal;
     } else {
       acc.push(point);
     }
@@ -165,7 +156,7 @@ export function PriceHistoryChart({ scryfallId, cardName }: PriceHistoryChartPro
                         if (!entry.value) return null;
                         let label = entry.name;
                         let currency = "$";
-                        let value = entry.value;
+                        const value = entry.value;
 
                         if (entry.name === "usdScryfall") {
                           label = "Scryfall";
@@ -173,17 +164,12 @@ export function PriceHistoryChart({ scryfallId, cardName }: PriceHistoryChartPro
                         } else if (entry.name === "usdTCGTracking") {
                           label = "TCGTracking";
                           currency = "$";
+                        } else if (entry.name === "usdJustTCG") {
+                          label = "JustTCG";
+                          currency = "$";
                         } else if (entry.name === "cnyEstimated") {
                           label = "CNY (估算)";
                           currency = "¥";
-                        } else if (entry.name === "jpyEstimated") {
-                          label = "JPY (估算)";
-                          currency = "¥";
-                          value = Math.round(value);
-                        } else if (entry.name === "jpyReal") {
-                          label = "JPY (Wisdom Guild)";
-                          currency = "¥";
-                          value = Math.round(value);
                         }
 
                         return (
@@ -214,9 +200,8 @@ export function PriceHistoryChart({ scryfallId, cardName }: PriceHistoryChartPro
               formatter={(value) => {
                 if (value === "usdScryfall") return "USD (Scryfall)";
                 if (value === "usdTCGTracking") return "USD (TCGTracking)";
+                if (value === "usdJustTCG") return "USD (JustTCG)";
                 if (value === "cnyEstimated") return "CNY (估算)";
-                if (value === "jpyEstimated") return "JPY (估算)";
-                if (value === "jpyReal") return "JPY (真实)";
                 return value;
               }}
             />
@@ -241,6 +226,16 @@ export function PriceHistoryChart({ scryfallId, cardName }: PriceHistoryChartPro
             />
             <Line
               type="monotone"
+              dataKey="usdJustTCG"
+              stroke={SOURCE_COLORS.justtcg}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              strokeDasharray="3 6"
+              connectNulls
+              name="usdJustTCG"
+            />
+            <Line
+              type="monotone"
               dataKey="cnyEstimated"
               stroke={CURRENCY_COLORS.cny}
               strokeWidth={1.5}
@@ -248,15 +243,6 @@ export function PriceHistoryChart({ scryfallId, cardName }: PriceHistoryChartPro
               strokeDasharray="3 3"
               connectNulls
               name="cnyEstimated"
-            />
-            <Line
-              type="monotone"
-              dataKey="jpyReal"
-              stroke={SOURCE_COLORS.wisdomguild}
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              connectNulls
-              name="jpyReal"
             />
           </LineChart>
         </ResponsiveContainer>

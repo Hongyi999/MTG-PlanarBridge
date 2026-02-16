@@ -1,17 +1,19 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Settings, CreditCard, Heart, List, Bell, Moon, Sun, Clock, Tag, Check, FileSpreadsheet, RotateCcw } from "lucide-react";
+import { Settings, CreditCard, Heart, List, Bell, Moon, Sun, Clock, Tag, Check, FileSpreadsheet, RotateCcw, LogOut, MessageCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
+import Login from "@/pages/login";
 
 const ALL_SOURCES = [
-  { key: "us", label: "美国市场 (USD)", flag: "🇺🇸", desc: "TCGPlayer / Scryfall" },
-  { key: "cn", label: "中国市场 (CNY)", flag: "🇨🇳", desc: "综合均价" },
+  { key: "us", label: "美国市场 (USD)", flag: "\u{1F1FA}\u{1F1F8}", desc: "TCGPlayer / Scryfall" },
+  { key: "cn", label: "中国市场 (CNY)", flag: "\u{1F1E8}\u{1F1F3}", desc: "综合均价" },
 ];
 
 const SETTINGS_KEY = "price_sources";
@@ -27,6 +29,7 @@ const EXPORT_DIM_LABELS: Record<string, string> = {
 };
 
 export default function Me() {
+  const { user, isLoading: authLoading, login, logout } = useAuth();
   const [isDark, setIsDark] = useState(false);
   const [showSourceManager, setShowSourceManager] = useState(false);
   const [enabledSources, setEnabledSources] = useState<string[]>(["us", "cn"]);
@@ -101,16 +104,31 @@ export default function Me() {
     });
   };
 
+  const handleLogout = async () => {
+    await logout();
+    toast({ title: "已退出登录" });
+  };
+
+  // Show login page if not authenticated
+  if (!user && !authLoading) {
+    return <Login onLogin={login} />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4 py-4">
         <Avatar className="w-20 h-20 border-2 border-primary">
-          <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Planeswalker" />
-          <AvatarFallback>PW</AvatarFallback>
+          <AvatarImage src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Planeswalker"} />
+          <AvatarFallback>{user?.username?.slice(0, 2) || "PW"}</AvatarFallback>
         </Avatar>
         <div>
-          <h1 className="text-2xl font-heading font-bold">鹏洛客_CN</h1>
-          <p className="text-sm text-muted-foreground">DCI: 987654321</p>
+          <h1 className="text-2xl font-heading font-bold">{user?.username || "..."}</h1>
+          {user?.wechatNickname && (
+            <p className="text-sm text-muted-foreground">微信: {user.wechatNickname}</p>
+          )}
+          {user?.phone && (
+            <p className="text-xs text-muted-foreground">{user.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2")}</p>
+          )}
           <div className="flex gap-2 mt-2">
             <Button size="sm" variant="outline" className="h-7 text-xs" data-testid="button-edit-profile">编辑资料</Button>
           </div>
@@ -156,6 +174,16 @@ export default function Me() {
                   <span>浏览足迹</span>
                 </div>
                 <span className="text-xs text-muted-foreground">查询历史</span>
+              </div>
+            </Link>
+
+            <Link href="/chat">
+              <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/5" data-testid="link-me-chat">
+                <div className="flex items-center gap-3">
+                  <MessageCircle className="w-5 h-5 text-blue-500" />
+                  <span>私信</span>
+                </div>
+                <span className="text-xs text-muted-foreground">交易沟通</span>
               </div>
             </Link>
           </div>
@@ -271,6 +299,17 @@ export default function Me() {
               <div className="flex items-center gap-3">
                 <Settings className="w-5 h-5 text-muted-foreground" />
                 <span>账户与隐私</span>
+              </div>
+            </div>
+
+            <div
+              className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/5"
+              onClick={handleLogout}
+              data-testid="button-logout"
+            >
+              <div className="flex items-center gap-3">
+                <LogOut className="w-5 h-5 text-red-500" />
+                <span className="text-red-500">退出登录</span>
               </div>
             </div>
           </div>

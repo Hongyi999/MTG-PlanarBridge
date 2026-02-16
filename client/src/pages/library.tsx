@@ -9,10 +9,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { searchCards, type SearchResult } from "@/lib/api";
+import { parseSmartSearch } from "@/lib/smart-search";
 
 export default function Library() {
   const [searchQuery, setSearchQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
+  const [smartExplanation, setSmartExplanation] = useState("");
   const [page, setPage] = useState(1);
 
   // Advanced filter state
@@ -65,7 +67,9 @@ export default function Library() {
 
   const handleSearch = (e?: React.FormEvent) => {
     e?.preventDefault();
-    setSubmittedQuery(searchQuery);
+    const parsed = parseSmartSearch(searchQuery);
+    setSubmittedQuery(parsed.scryfall);
+    setSmartExplanation(parsed.explanation);
     setPage(1);
   };
 
@@ -265,7 +269,7 @@ export default function Library() {
         <form onSubmit={handleSearch}>
           <div className="relative group">
             <Input
-              placeholder="搜索卡牌名称 (支持中英文自动检测)..."
+              placeholder="搜索卡牌名称或用自然语言描述 (如：3费以下绿色生物)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-12 pl-4 pr-10 border-primary/20 focus-visible:ring-primary/40 bg-card/40 backdrop-blur-md rounded-xl transition-all group-focus-within:shadow-lg group-focus-within:bg-card/60"
@@ -275,6 +279,13 @@ export default function Library() {
             </button>
           </div>
         </form>
+
+        {smartExplanation && (
+          <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2 flex items-center gap-2">
+            <span className="text-[10px] font-bold text-primary/60 uppercase tracking-wider shrink-0">AI 解析</span>
+            <span className="text-xs text-muted-foreground">{smartExplanation}</span>
+          </div>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto">

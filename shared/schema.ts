@@ -5,8 +5,11 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
+  phone: text("phone").notNull().unique(),
+  wechatNickname: text("wechat_nickname"),
   avatar: text("avatar"),
   dci_number: text("dci_number"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const cards = pgTable("cards", {
@@ -56,7 +59,25 @@ export const userCards = pgTable("user_cards", {
   count: integer("count").default(1).notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+export const verificationCodes = pgTable("verification_codes", {
+  id: serial("id").primaryKey(),
+  phone: text("phone").notNull(),
+  code: text("code").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").references(() => users.id).notNull(),
+  receiverId: integer("receiver_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  read: boolean("read").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertCardSchema = createInsertSchema(cards).omit({ id: true, cached_at: true });
 export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true, likes: true, comments: true });
 export const priceLists = pgTable("price_lists", {
@@ -173,3 +194,7 @@ export type CommunityPost = typeof communityPosts.$inferSelect;
 export type InsertCommunityPost = z.infer<typeof insertCommunityPostSchema>;
 export type PriceHistory = typeof priceHistory.$inferSelect;
 export type InsertPriceHistory = z.infer<typeof insertPriceHistorySchema>;
+
+export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true, read: true });
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
