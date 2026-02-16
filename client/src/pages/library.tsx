@@ -10,8 +10,75 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { searchCards, type SearchResult } from "@/lib/api";
 import { parseSmartSearch } from "@/lib/smart-search";
+import { useGame } from "@/hooks/use-game";
+import { Link } from "wouter";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+
+// FAB search result type
+interface FaBSearchResult {
+  cards: FaBCardData[];
+  total_cards: number;
+  has_more: boolean;
+}
+
+interface FaBCardData {
+  identifier: string;
+  name: string;
+  text: string | null;
+  cost: string | null;
+  pitch: string | null;
+  power: string | null;
+  defense: string | null;
+  rarity: string | null;
+  keywords: string[];
+  image: string | null;
+}
+
+async function searchFaBCards(query: string, page: number): Promise<FaBSearchResult> {
+  const res = await fetch(`/api/fab/cards/search?q=${encodeURIComponent(query)}&page=${page}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(body.message || `FAB search failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// FAB card grid component
+function FaBCardGrid({ card }: { card: FaBCardData }) {
+  const pitchColors: Record<string, string> = {
+    "1": "border-red-500/60 bg-red-500/5",
+    "2": "border-yellow-500/60 bg-yellow-500/5",
+    "3": "border-blue-500/60 bg-blue-500/5",
+  };
+  const pitchClass = card.pitch ? pitchColors[card.pitch] || "border-border/40" : "border-border/40";
+
+  return (
+    <Link href={`/fab/${card.identifier}`}>
+      <Card className={`overflow-hidden border-2 ${pitchClass} hover:shadow-lg transition-all cursor-pointer`}>
+        {card.image ? (
+          <div className="aspect-[5/7] overflow-hidden">
+            <img src={card.image} alt={card.name} className="w-full h-full object-cover" loading="lazy" />
+          </div>
+        ) : (
+          <div className="aspect-[5/7] bg-muted flex items-center justify-center">
+            <span className="text-xs text-muted-foreground">No Image</span>
+          </div>
+        )}
+        <CardContent className="p-2 space-y-0.5">
+          <p className="font-bold text-xs truncate">{card.name}</p>
+          <div className="flex items-center gap-1">
+            {card.cost && <Badge variant="outline" className="text-[9px] h-4 px-1">Cost {card.cost}</Badge>}
+            {card.pitch && <Badge variant="outline" className="text-[9px] h-4 px-1">Pitch {card.pitch}</Badge>}
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
 
 export default function Library() {
+  const { game, gameInfo } = useGame();
   const [searchQuery, setSearchQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [smartExplanation, setSmartExplanation] = useState("");
@@ -58,12 +125,25 @@ export default function Library() {
 
   const actualQuery = buildQuery();
 
+  // MTG search
   const { data, isLoading, error } = useQuery<SearchResult>({
-    queryKey: ["card-search", actualQuery, page],
+    queryKey: ["card-search", "mtg", actualQuery, page],
     queryFn: () => searchCards(actualQuery, page),
-    enabled: actualQuery.length > 0,
+    enabled: actualQuery.length > 0 && game === "mtg",
     staleTime: 5 * 60 * 1000,
   });
+
+  // FAB search
+  const { data: fabData, isLoading: fabLoading, error: fabError } = useQuery<FaBSearchResult>({
+    queryKey: ["card-search", "fab", submittedQuery, page],
+    queryFn: () => searchFaBCards(submittedQuery, page),
+    enabled: submittedQuery.length > 0 && game === "fab",
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const isFab = game === "fab";
+  const currentLoading = isFab ? fabLoading : isLoading;
+  const currentError = isFab ? fabError : error;
 
   const handleSearch = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -100,16 +180,21 @@ export default function Library() {
     setFilterColors(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
   };
 
-  const cards = data?.cards || [];
-  const totalCards = data?.total_cards || 0;
-  const hasMore = data?.has_more || false;
+  const cards = isFab ? [] : (data?.cards || []);
+  const fabCards = isFab ? (fabData?.cards || []) : [];
+  const totalCards = isFab ? (fabData?.total_cards || 0) : (data?.total_cards || 0);
+  const hasMore = isFab ? (fabData?.has_more || false) : (data?.has_more || false);
+  const hasQuery = isFab ? submittedQuery.length > 0 : actualQuery.length > 0;
+  const hasResults = isFab ? fabCards.length > 0 : cards.length > 0;
 
   return (
     <div className="space-y-6 h-full flex flex-col pb-4">
       <header className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-heading font-bold text-primary">卡牌库</h1>
-          <Sheet>
+          <h1 className="text-2xl font-heading font-bold text-primary">
+            {isFab ? "FAB 卡库" : "卡牌库"}
+          </h1>
+          {!isFab && <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 border-primary/20 bg-card/50">
                 <SlidersHorizontal className="w-4 h-4" />
@@ -263,13 +348,13 @@ export default function Library() {
                 </SheetClose>
               </div>
             </SheetContent>
-          </Sheet>
+          </Sheet>}
         </div>
 
         <form onSubmit={handleSearch}>
           <div className="relative group">
             <Input
-              placeholder="搜索卡牌名称或用自然语言描述 (如：3费以下绿色生物)..."
+              placeholder={isFab ? "搜索 FAB 卡牌名称..." : "搜索卡牌名称或用自然语言描述 (如：3费以下绿色生物)..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-12 pl-4 pr-10 border-primary/20 focus-visible:ring-primary/40 bg-card/40 backdrop-blur-md rounded-xl transition-all group-focus-within:shadow-lg group-focus-within:bg-card/60"
@@ -280,7 +365,7 @@ export default function Library() {
           </div>
         </form>
 
-        {smartExplanation && (
+        {smartExplanation && !isFab && (
           <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2 flex items-center gap-2">
             <span className="text-[10px] font-bold text-primary/60 uppercase tracking-wider shrink-0">AI 解析</span>
             <span className="text-xs text-muted-foreground">{smartExplanation}</span>
@@ -289,36 +374,41 @@ export default function Library() {
       </header>
 
       <div className="flex-1 overflow-y-auto">
-        {isLoading && (
+        {currentLoading && (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">正在搜索卡牌...</p>
+            <p className="text-sm text-muted-foreground">正在搜索{isFab ? " FAB " : ""}卡牌...</p>
           </div>
         )}
 
-        {error && (
+        {currentError && (
           <div className="text-center py-12 space-y-3">
-            <p className="text-sm text-red-500">搜索出错: {(error as Error).message}</p>
+            <p className="text-sm text-red-500">搜索出错: {(currentError as Error).message}</p>
             <p className="text-xs text-muted-foreground">请检查搜索条件后重试</p>
           </div>
         )}
 
-        {!isLoading && !error && actualQuery.length === 0 && (
+        {!currentLoading && !currentError && !hasQuery && (
           <div className="text-center py-16 space-y-3">
             <Filter className="w-12 h-12 text-muted-foreground/30 mx-auto" />
-            <p className="text-muted-foreground text-sm">输入关键词搜索万智牌卡牌</p>
-            <p className="text-xs text-muted-foreground">支持中文名、英文名、系列代码等</p>
+            <p className="text-muted-foreground text-sm">
+              {isFab ? "输入关键词搜索 Flesh and Blood 卡牌" : "输入关键词搜索万智牌卡牌"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {isFab ? "支持英文卡牌名称" : "支持中文名、英文名、系列代码等"}
+            </p>
           </div>
         )}
 
-        {!isLoading && !error && actualQuery.length > 0 && cards.length === 0 && (
+        {!currentLoading && !currentError && hasQuery && !hasResults && (
           <div className="text-center py-12 space-y-3">
             <p className="text-muted-foreground text-sm">未找到匹配的卡牌</p>
             <p className="text-xs text-muted-foreground">试试其他搜索条件</p>
           </div>
         )}
 
-        {cards.length > 0 && (
+        {/* MTG results */}
+        {!isFab && cards.length > 0 && (
           <>
             <div className="flex items-center justify-between mb-4 px-1">
               <span className="text-xs text-muted-foreground font-bold tracking-tight">发现 {totalCards.toLocaleString()} 张卡牌</span>
@@ -332,6 +422,34 @@ export default function Library() {
             <div className="grid grid-cols-2 gap-4 pb-8">
               {cards.map(card => (
                 <MTGCard key={card.scryfall_id} card={card} variant="grid" />
+              ))}
+            </div>
+
+            {hasMore && (
+              <div className="flex justify-center pb-24">
+                <Button variant="outline" onClick={() => setPage(p => p + 1)} className="font-heading">
+                  加载更多
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* FAB results */}
+        {isFab && fabCards.length > 0 && (
+          <>
+            <div className="flex items-center justify-between mb-4 px-1">
+              <span className="text-xs text-muted-foreground font-bold tracking-tight">发现 {totalCards.toLocaleString()} 张卡牌</span>
+              {page > 1 && (
+                <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setPage(p => Math.max(1, p - 1))}>
+                  上一页
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 pb-8">
+              {fabCards.map(card => (
+                <FaBCardGrid key={card.identifier} card={card} />
               ))}
             </div>
 

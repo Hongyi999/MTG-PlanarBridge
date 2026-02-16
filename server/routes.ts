@@ -523,4 +523,69 @@ export async function registerRoutes(
     const rates = await getExchangeRates();
     res.json(rates);
   });
+
+  // ============ Flesh and Blood (FAB) Endpoints ============
+
+  const { searchFaBCards, getFaBCard } = await import("./fabdb");
+
+  // Search FAB cards via FaBDB
+  app.get("/api/fab/cards/search", async (req, res) => {
+    const q = req.query.q as string;
+    const page = parseInt(req.query.page as string) || 1;
+    if (!q || q.trim().length === 0) {
+      return res.status(400).json({ message: "Query parameter 'q' is required" });
+    }
+    try {
+      const result = await searchFaBCards(q, page);
+      const rates = await getExchangeRates();
+      const cards = result.data.map(card => ({
+        identifier: card.identifier,
+        name: card.name,
+        text: card.text || null,
+        cost: card.cost || null,
+        pitch: card.pitch || null,
+        power: card.power || null,
+        defense: card.defense || null,
+        health: card.health || null,
+        rarity: card.rarity || null,
+        keywords: card.keywords || [],
+        image: card.printings?.[0]?.image || card.image || null,
+        printings: card.printings || [],
+        prices: { usd: null, cny_converted: null },
+      }));
+      res.json({
+        cards,
+        total_cards: result.total,
+        has_more: result.current_page < result.last_page,
+        next_page: page + 1,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "FAB search failed" });
+    }
+  });
+
+  // Get FAB card by identifier
+  app.get("/api/fab/cards/:identifier", async (req, res) => {
+    try {
+      const card = await getFaBCard(req.params.identifier);
+      if (!card) return res.status(404).json({ message: "Card not found" });
+      res.json({
+        identifier: card.identifier,
+        name: card.name,
+        text: card.text || null,
+        cost: card.cost || null,
+        pitch: card.pitch || null,
+        power: card.power || null,
+        defense: card.defense || null,
+        health: card.health || null,
+        rarity: card.rarity || null,
+        keywords: card.keywords || [],
+        image: card.printings?.[0]?.image || card.image || null,
+        printings: card.printings || [],
+        prices: { usd: null, cny_converted: null },
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to fetch FAB card" });
+    }
+  });
 }
