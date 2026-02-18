@@ -1,125 +1,167 @@
-# MTG PlanarBridge - 万智牌卡牌价格查询平台
+# MTG PlanarBridge
 
-<p align="center">
-  <strong>Magic: The Gathering 卡牌价格查询 · 社区交流 · 收藏管理</strong>
-</p>
+**A multi-game TCG price lookup and community platform for Magic: The Gathering and Flesh and Blood.**
 
-<p align="center">
-  面向中文万智牌玩家和本地游戏店 (LGS) 的一站式卡牌价格查询与社区交易平台
-</p>
+Built for Chinese-speaking players and local game stores (LGS). Mobile-first design with real-time multi-source pricing, smart Chinese search, community trading, and direct messaging.
 
 ---
 
-## 功能特性
+## Features
 
-### 卡牌搜索与价格查询
-- 接入 [Scryfall API](https://scryfall.com/) 实时获取卡牌数据
-- 支持中英文自动检测搜索（输入中文自动搜索简体中文版本）
-- 高级筛选：按名称、类别、系列、稀有度、颜色、法术力费用、赛制、画师、语言等维度搜索
-- 实时价格显示（USD/EUR），并提供人民币 (CNY)、日元 (JPY) 估算换算
-- 卡牌详情页：完整规则文本、赛制合法性、多市场价格对比
+### Multi-Game Support
 
-### 收藏与价格管理
-- 价格列表管理（待购清单、出售清单、收藏观察）
-- 支持导出为 CSV 或图片，可自定义导出字段
-- 卡牌关注与浏览历史记录
+Switch between **Magic: The Gathering** and **Flesh and Blood** from the header dropdown. The library, search, and card detail views adapt to the selected game.
 
-### 社区功能
-- 社区帖子（讨论、出售、收购、交换）
-- 图片上传、语音输入
-- 帖子可关联卡牌显示参考价格
+### MTG Card Search & Pricing
 
-### 用户体验
-- 移动端优先设计（500px 最大宽度）
-- 奇幻主题视觉风格，灵感来自万智牌世界观
-- 深色/浅色主题切换
-- 流畅的交互动画
+- **Scryfall API** proxy with rate limiting (10 req/s) and 24-hour local cache
+- **Smart Chinese search** — Chinese queries auto-prepend `lang:zhs`; natural language converts to Scryfall syntax (e.g., `3费以下的绿色生物` → `cmc<=3 color:G type:creature`)
+- **Advanced filters**: name, rules text, type, set, rarity, color, CMC, format legality, artist, language
+- **Autocomplete** for card names
+- Paginated results with "load more"
+
+### FAB Card Search & Pricing
+
+- **~4,200+ cards** loaded from the [flesh-and-blood-cards](https://github.com/the-fab-cube/flesh-and-blood-cards) repository (Git submodule)
+- **In-memory cache** with indexes by UUID, name, and printing identifier — search latency ~0.4ms
+- **Live TCGPlayer prices** (normal + foil) fetched from [TCGCSV](https://tcgcsv.com) across all FAB sets, refreshed every 24 hours
+- Card detail shows all printings with pitch color coding, foiling types, and TCGPlayer links
+
+### Multi-Source Price System
+
+| Source | Data | Auth Required |
+|--------|------|:---:|
+| **Scryfall** | USD, EUR, TIX prices + card data | No |
+| **TCGTracking** | Condition-specific USD (NM/LP/MP/HP/DMG) | No |
+| **TCGCSV** | TCGPlayer mirror for FAB prices | No |
+| **JustTCG** | Multi-source pricing + price history | Optional API key |
+| **Wisdom Guild** | Japanese market JPY prices | Optional API key |
+
+- **Automatic snapshots** every 6 hours for all followed cards
+- **Immediate snapshot** when a card is followed
+- **Price history chart** (Recharts) on card detail pages
+- Exchange rates stored alongside each snapshot for historical accuracy
+
+### Multi-Currency Display
+
+- Native: USD, EUR, TIX (from Scryfall)
+- Converted: CNY and JPY via configurable exchange rates (defaults: 1 USD = 7.25 CNY, 1 USD = 150 JPY)
+- Rates adjustable via settings API
+
+### Price Lists
+
+- Create named lists (wishlist, sell list, collection watchlist)
+- Add cards with quantity, condition, notes, and prices in USD/CNY/JPY
+- Full CRUD for lists and items
+
+### Authentication
+
+- Phone number + SMS OTP login (Chinese mobile numbers)
+- Auto-registration on first login
+- WeChat nickname support
+- 30-day session cookies
+- Auto-generated DiceBear avatars
+
+### Community & Messaging
+
+- Post types: discussion, sell, buy, trade
+- Up to 9 image attachments per post (5MB each)
+- Optional linked card with reference price
+- Like system
+- **Direct messaging** with unread counts and mark-as-read
+
+### Card View History
+
+- Tracks recently viewed cards (deduplicated, most recent first)
 
 ---
 
-## 技术栈
+## Tech Stack
 
-### 前端
+### Frontend
+
 - **React 19** + TypeScript
-- **Vite 7** 构建工具
-- **Tailwind CSS 4** 样式框架
-- **shadcn/ui** (Radix UI) 组件库
-- **TanStack React Query** 服务端状态管理
-- **Wouter** 轻量级路由
-- **Framer Motion** 动画
-- **Recharts** 图表
+- **Vite 7** — build tool and dev server
+- **Tailwind CSS 4** — utility-first styling
+- **shadcn/ui** (Radix UI) — 40+ UI components
+- **TanStack React Query 5** — server state management
+- **wouter** — lightweight client-side routing
+- **Framer Motion** — animations
+- **Recharts** — price history charts
+- **react-hook-form** + **zod** — form validation
 
-### 后端
-- **Express 5** (Node.js)
-- **PostgreSQL** 数据库
-- **Drizzle ORM** 数据库操作
-- **Zod** 数据校验
+### Backend
 
-### 外部 API（多源价格系统）
-- **[Scryfall API](https://scryfall.com/docs/api)** - 主力数据源：卡牌信息 + TCGPlayer/CardMarket 官方价格（免费）
-- **[TCGTracking API](https://tcgtracking.com/tcgapi/)** - 补充数据源：按品相查价 NM/LP/MP/HP（免费，无需 Key）
-- **[JustTCG API](https://justtcg.com/docs)** - 价格历史：7/30/90/180 天深度历史（免费 Key）
-- **[Wisdom Guild API](http://wonder.wisdom-guild.net/api/card-price/manual.php)** - 日本市场真实 JPY 价格（需申请 Key）
+- **Express 5** (Node.js, ESM)
+- **PostgreSQL** + **Drizzle ORM** — type-safe database layer
+- **express-session** — session management
+- **multer** — image upload handling
+
+### External APIs
+
+- [Scryfall](https://scryfall.com/docs/api) — MTG card data and prices
+- [TCGTracking](https://tcgtracking.com/tcgapi/) — condition-specific TCGPlayer prices
+- [TCGCSV](https://tcgcsv.com) — free TCGPlayer price mirror (FAB prices)
+- [JustTCG](https://justtcg.com/docs) — price history (optional)
+- [Wisdom Guild](http://wonder.wisdom-guild.net/) — Japanese market JPY prices (optional)
 
 ---
 
-## 快速开始
+## Getting Started
 
-### 环境要求
+### Prerequisites
+
 - Node.js 18+
 - PostgreSQL 14+
 
-### 安装
+### Installation
 
 ```bash
-# 克隆仓库
 git clone https://github.com/Hongyi999/MTG-PlanarBridge.git
 cd MTG-PlanarBridge
 
-# 安装依赖
+# Initialize FAB cards submodule
+git submodule update --init --recursive
+
+# Install dependencies
 npm install
 ```
 
-### 配置
-
-复制 `.env.example` 并配置：
+### Configuration
 
 ```bash
 cp .env.example .env
 ```
 
-编辑 `.env` 文件：
+Edit `.env`:
 
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/mtg_planar_bridge
 PORT=5000
 
-# JustTCG API Key (可选，用于价格历史)
-# 申请：https://justtcg.com → Dashboard → API Settings
-JUSTTCG_API_KEY=your_justtcg_api_key_here
+# Optional: JustTCG price history
+JUSTTCG_API_KEY=
 
-# Wisdom Guild API (可选，用于日本市场价格)
-# 申请：http://wonder.wisdom-guild.net/ → 联系管理员
-WISDOMGUILD_API_KEY=your_api_key_here
-WISDOMGUILD_SECRET_KEY=your_secret_key_here
+# Optional: Japanese market prices (Wisdom Guild)
+WISDOMGUILD_API_KEY=
+WISDOMGUILD_SECRET_KEY=
 ```
 
-### 数据库初始化
+### Database Setup
 
 ```bash
-# 将 schema 推送到数据库
 npm run db:push
 ```
 
-### 启动开发服务器
+### Development
 
 ```bash
 npm run dev
 ```
 
-访问 `http://localhost:5000` 即可使用。
+Open `http://localhost:5000`. The server serves both the API and the Vite-powered frontend.
 
-### 生产构建
+### Production Build
 
 ```bash
 npm run build
@@ -128,147 +170,208 @@ npm start
 
 ---
 
-## 项目结构
+## Project Structure
 
 ```
 MTG-PlanarBridge/
-├── client/                    # React 前端
-│   ├── src/
-│   │   ├── pages/            # 页面组件 (9 个)
-│   │   │   ├── home.tsx      # 发现页 - 热门卡牌、快捷搜索
-│   │   │   ├── library.tsx   # 卡牌库 - 搜索与高级筛选
-│   │   │   ├── card-detail.tsx  # 卡牌详情 - 价格、规则、赛制
-│   │   │   ├── community.tsx # 社区 - 帖子动态
-│   │   │   ├── create-post.tsx  # 发布动态
-│   │   │   ├── price-lists.tsx  # 价格列表管理
-│   │   │   ├── card-history-page.tsx  # 浏览足迹
-│   │   │   ├── me.tsx        # 个人中心
-│   │   │   └── not-found.tsx # 404 页面
-│   │   ├── components/       # UI 组件
-│   │   ├── lib/              # 工具函数
-│   │   │   ├── api.ts        # Scryfall API 前端封装
-│   │   │   ├── queryClient.ts # React Query 配置
-│   │   │   └── utils.ts      # 通用工具
-│   │   └── hooks/            # 自定义 Hooks
-│   └── public/               # 静态资源
-├── server/                    # Express 后端
-│   ├── index.ts              # 服务器入口 + 定时快照调度
-│   ├── routes.ts             # API 路由
-│   ├── scryfall.ts           # Scryfall API 代理与速率限制
-│   ├── tcgtracking.ts        # TCGTracking API (免费 TCGPlayer 代理)
-│   ├── justtcg.ts            # JustTCG API (价格历史)
-│   ├── wisdom-guild.ts       # Wisdom Guild API (日本市场)
-│   ├── price-snapshot.ts     # 多源价格快照任务
-│   ├── storage.ts            # 数据库操作层
-│   └── db.ts                 # PostgreSQL 连接
-├── shared/                    # 前后端共享
-│   └── schema.ts             # Drizzle ORM Schema + Zod 校验
+├── client/                         # React frontend
+│   └── src/
+│       ├── pages/                  # Route pages
+│       │   ├── home.tsx            # Discovery — trending cards, community picks
+│       │   ├── library.tsx         # Card search (MTG + FAB) with advanced filters
+│       │   ├── card-detail.tsx     # MTG card detail — prices, history chart
+│       │   ├── fab-card-detail.tsx # FAB card detail — printings, TCGPlayer prices
+│       │   ├── community.tsx       # Community feed (buy/sell/trade/discussion)
+│       │   ├── create-post.tsx     # Create a community post
+│       │   ├── price-lists.tsx     # Price list management
+│       │   ├── card-history-page.tsx # Recently viewed cards
+│       │   ├── chat.tsx            # Direct messaging
+│       │   ├── login.tsx           # Phone + OTP login
+│       │   ├── me.tsx              # User profile and settings
+│       │   └── not-found.tsx       # 404
+│       ├── components/             # UI components (shadcn/ui + custom)
+│       │   ├── mtg-card.tsx        # Card display (grid/list variants)
+│       │   └── price-history-chart.tsx # Price history line chart
+│       ├── hooks/                  # Custom hooks
+│       │   ├── use-auth.tsx        # Auth context (login, logout, session)
+│       │   ├── use-game.tsx        # Game switcher (MTG / FAB)
+│       │   └── use-theme.ts       # Dark/light mode
+│       └── lib/
+│           ├── api.ts              # API client helpers
+│           └── smart-search.ts     # Chinese natural language → Scryfall syntax
+├── server/                         # Express backend
+│   ├── index.ts                    # Entry point, startup scheduling
+│   ├── routes.ts                   # All API routes
+│   ├── storage.ts                  # Database operations (Drizzle ORM)
+│   ├── db.ts                       # PostgreSQL connection
+│   ├── scryfall.ts                 # Scryfall API proxy (rate-limited)
+│   ├── tcgtracking.ts             # TCGTracking API client
+│   ├── tcgcsv.ts                  # TCGCSV API client (FAB prices)
+│   ├── justtcg.ts                 # JustTCG API client (optional)
+│   ├── wisdom-guild.ts            # Wisdom Guild API client (optional)
+│   ├── price-snapshot.ts          # Multi-source price snapshot scheduler
+│   ├── fab-cards-cache.ts         # In-memory FAB card database
+│   ├── fab-cards-types.ts         # FAB TypeScript types
+│   ├── fab-price-cache.ts         # FAB TCGPlayer price cache (via TCGCSV)
+│   └── fab-cards-data/            # Git submodule: flesh-and-blood-cards
+├── shared/
+│   └── schema.ts                  # Drizzle ORM schema + Zod validators
+├── drizzle.config.ts              # Drizzle Kit configuration
 └── package.json
 ```
 
 ---
 
-## API 端点
+## API Reference
 
-### 卡牌搜索（Scryfall 代理）
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/cards/search?q=<query>&page=<n>` | 搜索卡牌 (自动检测中英文) |
-| GET | `/api/cards/autocomplete?q=<query>` | 卡牌名称自动完成 |
-| GET | `/api/cards/scryfall/:scryfallId` | 按 Scryfall UUID 获取卡牌 |
-| GET | `/api/cards/named?name=<name>` | 按名称查找卡牌 |
+### MTG Cards (Scryfall Proxy)
 
-### 价格列表
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET/POST | `/api/price-lists` | 获取/创建价格列表 |
-| PATCH/DELETE | `/api/price-lists/:id` | 更新/删除价格列表 |
-| GET/POST | `/api/price-lists/:id/items` | 获取/添加列表项 |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/cards/search?q=&page=` | Search cards (auto-detects Chinese) |
+| GET | `/api/cards/autocomplete?q=` | Card name autocomplete |
+| GET | `/api/cards/scryfall/:scryfallId` | Get card by Scryfall UUID (24h cache) |
+| GET | `/api/cards/named?name=&exact=` | Get card by name |
 
-### 社区
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET/POST | `/api/community-posts` | 获取/发布社区帖子 |
-| POST | `/api/community-posts/:id/like` | 点赞帖子 |
+### FAB Cards
 
-### 价格历史
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/price-history/:scryfallId?days=90` | 获取价格历史时间序列 |
-| GET | `/api/price-history/:scryfallId/latest?source=scryfall` | 获取最新价格快照 |
-| POST | `/api/price-history/snapshot` | 手动触发全量价格快照 |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/fab/cards/search?q=&page=` | Search FAB cards (in-memory) |
+| GET | `/api/fab/cards/:identifier` | Get FAB card by printing ID (e.g., `MST131`) |
+| GET | `/api/fab/price-cache/status` | Price cache status |
+| POST | `/api/fab/price-cache/refresh` | Force-refresh FAB prices |
 
-### 其他
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET/POST | `/api/followed-cards` | 关注的卡牌（关注时自动快照价格） |
-| GET/POST | `/api/card-history` | 浏览历史 |
-| GET/PUT | `/api/exchange-rates` | 汇率设置 |
-| GET/PUT | `/api/settings/:key` | 用户设置 |
+### Price Tracking
 
----
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/followed-cards` | List followed cards |
+| POST | `/api/followed-cards` | Follow a card (triggers snapshot) |
+| DELETE | `/api/followed-cards/:id` | Unfollow a card |
+| GET | `/api/price-history/:scryfallId?days=90` | Price history time series |
+| GET | `/api/price-history/:scryfallId/latest?source=` | Latest price snapshot |
+| POST | `/api/price-history/snapshot` | Trigger manual snapshot |
 
-## 数据库 Schema
+### Price Lists
 
-项目使用 PostgreSQL，通过 Drizzle ORM 管理以下数据表：
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/price-lists` | List all price lists |
+| POST | `/api/price-lists` | Create a price list |
+| PATCH | `/api/price-lists/:id` | Update a price list |
+| DELETE | `/api/price-lists/:id` | Delete a price list |
+| GET | `/api/price-lists/:listId/items` | List items in a price list |
+| POST | `/api/price-lists/:listId/items` | Add item to a price list |
+| PATCH | `/api/price-list-items/:id` | Update a list item |
+| DELETE | `/api/price-list-items/:id` | Remove a list item |
 
-- **cards** - 卡牌缓存（来自 Scryfall）
-- **price_history** - 多源价格历史快照（Scryfall/TCGTracking/JustTCG/Wisdom Guild）
-- **price_lists** / **price_list_items** - 价格列表
-- **followed_cards** - 关注的卡牌
-- **card_history** - 浏览历史
-- **community_posts** - 社区帖子
-- **user_settings** - 用户设置
-- **users** - 用户信息
+### Auth
 
----
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/send-code` | Send SMS verification code |
+| POST | `/api/auth/login` | Login / auto-register with phone + code |
+| GET | `/api/auth/me` | Get current session user |
+| PATCH | `/api/auth/profile` | Update profile |
+| POST | `/api/auth/logout` | Logout |
 
-## 价格系统
+### Community & Messaging
 
-### 多源价格数据
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/community-posts` | List community posts |
+| POST | `/api/community-posts` | Create a post |
+| POST | `/api/community-posts/:id/like` | Like a post |
+| GET | `/api/messages/conversations` | List conversations |
+| GET | `/api/messages/:userId` | Get messages with a user |
+| POST | `/api/messages` | Send a message |
+| GET | `/api/users/search?q=` | Search users |
 
-| 数据源 | 价格类型 | 更新频率 | 是否需要 API Key |
-|--------|----------|----------|-----------------|
-| **Scryfall** | USD, EUR, TIX | 每日 | 否（免费） |
-| **TCGTracking** | USD (按品相) | 每日 8AM EST | 否（免费） |
-| **JustTCG** | USD + 历史曲线 | 实时 | 是（免费层可用）|
-| **Wisdom Guild** | JPY（真实价格）| 每日 | 是（需申请）|
+### Settings
 
-### 价格快照机制
-- 服务器启动 30 秒后执行首次快照
-- 每 6 小时自动快照所有关注的卡牌
-- 关注新卡牌时立即触发快照
-- 每个快照记录当时的汇率，确保历史换算准确
-
-### 汇率说明
-- **CNY** 为基于可配置汇率的估算价格，标注为"估算"
-- **JPY** 优先使用 Wisdom Guild 真实价格，无数据时使用汇率估算
-- 默认汇率: 1 USD ≈ 7.25 CNY, 1 USD ≈ 150 JPY
-- 可在设置中手动调整汇率
-
-### API Key 申请指南
-
-#### JustTCG（推荐，5 分钟完成）
-1. 访问 [justtcg.com](https://justtcg.com) 注册账号
-2. 进入 Dashboard → API Settings
-3. 生成 API Key
-4. 将 Key 添加到 `.env` 的 `JUSTTCG_API_KEY`
-
-#### Wisdom Guild（可选，日本市场）
-1. 访问 [wonder.wisdom-guild.net](http://wonder.wisdom-guild.net/) 注册
-2. 通过联系表单或邮件联系管理员，申请 API 访问权限
-3. 收到 `api_key` 和 `secret_key` 后添加到 `.env`
-4. 详见 `server/wisdom-guild.ts` 中的注释
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/exchange-rates` | Get exchange rates |
+| PUT | `/api/exchange-rates` | Update exchange rates |
+| GET | `/api/settings/:key` | Get a setting |
+| PUT | `/api/settings/:key` | Set a setting |
+| POST | `/api/upload` | Upload images (up to 9, 5MB each) |
 
 ---
 
-## 致谢
+## Database Schema
 
-- 卡牌数据由 [Scryfall](https://scryfall.com/) 提供
-- Scryfall is not produced by or endorsed by Wizards of the Coast
-- Magic: The Gathering is a trademark of Wizards of the Coast LLC
+Managed via Drizzle ORM. Key tables:
+
+| Table | Purpose |
+|-------|---------|
+| `users` | User accounts (phone, username, WeChat nickname, avatar) |
+| `cards` | Local MTG card cache (from Scryfall) |
+| `price_history` | Multi-source price snapshots with exchange rates at time of recording |
+| `price_lists` / `price_list_items` | User-managed price lists |
+| `followed_cards` | Cards followed for price tracking |
+| `card_history` | Recently viewed cards |
+| `community_posts` | Community posts (discussion/sell/buy/trade) |
+| `messages` | Direct messages between users |
+| `verification_codes` | SMS OTP codes (5-min TTL) |
+| `user_settings` | Key-value settings (exchange rates, preferences) |
+
+Run `npm run db:push` to sync schema to your database.
 
 ---
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start full-stack dev server (API + Vite HMR on port 5000) |
+| `npm run build` | Production build (esbuild server + Vite client) |
+| `npm start` | Run production build |
+| `npm run check` | TypeScript type check |
+| `npm run db:push` | Push Drizzle schema to PostgreSQL |
+
+---
+
+## Background Jobs
+
+The server runs several scheduled tasks:
+
+| Job | Interval | Description |
+|-----|----------|-------------|
+| MTG price snapshot | Every 6 hours | Snapshots prices for all followed cards from all configured sources |
+| FAB card data reload | Every 24 hours | Reloads FAB card data from the Git submodule JSON files |
+| FAB price refresh | Every 24 hours | Refreshes TCGPlayer prices for all FAB sets via TCGCSV |
+
+An initial MTG price snapshot runs 30 seconds after server startup. FAB prices load in the background on startup (non-blocking).
+
+---
+
+## Optional API Keys
+
+The app works without any API keys using Scryfall + TCGTracking + TCGCSV as free data sources. Optional keys unlock additional features:
+
+### JustTCG (recommended, 5 minutes to set up)
+
+1. Register at [justtcg.com](https://justtcg.com)
+2. Go to Dashboard → API Settings → Generate key
+3. Add to `.env` as `JUSTTCG_API_KEY`
+
+### Wisdom Guild (optional, Japanese market)
+
+1. Register at [wonder.wisdom-guild.net](http://wonder.wisdom-guild.net/)
+2. Contact the admin to request API access
+3. Add `WISDOMGUILD_API_KEY` and `WISDOMGUILD_SECRET_KEY` to `.env`
+
+---
+
+## Acknowledgments
+
+- MTG card data provided by [Scryfall](https://scryfall.com/). Scryfall is not produced by or endorsed by Wizards of the Coast.
+- FAB card data from [the-fab-cube/flesh-and-blood-cards](https://github.com/the-fab-cube/flesh-and-blood-cards).
+- FAB prices from [TCGCSV](https://tcgcsv.com), a free TCGPlayer data mirror.
+- Magic: The Gathering is a trademark of Wizards of the Coast LLC.
+- Flesh and Blood is a trademark of Legend Story Studios.
 
 ## License
 
