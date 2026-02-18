@@ -114,6 +114,26 @@ app.use((req, res, next) => {
     });
   }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
 
+  // Initialize FAB price cache in the background (non-blocking)
+  const { fabPriceCache } = await import("./fab-price-cache");
+  log("Loading FAB price cache from TCGCSV...", "fab-prices");
+  fabPriceCache.ensureLoaded()
+    .then(() => {
+      const status = fabPriceCache.getStatus();
+      log(`FAB price cache loaded: ${status.productCount} products`, "fab-prices");
+    })
+    .catch((err: any) => {
+      log(`FAB price cache failed: ${err.message}`, "fab-prices");
+    });
+
+  // Refresh FAB prices daily
+  setInterval(() => {
+    log("Refreshing FAB price cache...", "fab-prices");
+    fabPriceCache.refresh().catch((err: any) => {
+      log(`FAB price cache refresh failed: ${err.message}`, "fab-prices");
+    });
+  }, 24 * 60 * 60 * 1000);
+
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

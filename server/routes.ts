@@ -8,6 +8,7 @@ import { searchCards, getCardById, getCardByName, autocomplete, type ScryfallCar
 import { snapshotFollowedCardPrices, snapshotSingleCard } from "./price-snapshot";
 import session from "express-session";
 import { fabCardsCache } from "./fab-cards-cache";
+import { fabPriceCache } from "./fab-price-cache";
 import type { FaBCardData } from "./fab-cards-types";
 
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -62,11 +63,38 @@ declare module "express-session" {
 
 /**
  * Map fab-cards-cache data to API response format
- * Converts comprehensive fab-cards repository structure to simplified API format
+ * Converts comprehensive fab-cards repository structure to simplified API format.
+ * Looks up live TCGPlayer prices from fabPriceCache for each printing.
  */
-function mapFaBCardToAPI(card: FaBCardData) {
+function mapFaBCardToAPI(
+  card: FaBCardData,
+  rates: { usd_to_cny: number; usd_to_jpy: number }
+) {
   // Get the first printing for image and rarity
   const firstPrinting = card.printings[0];
+
+  // Build per-printing prices and find the best "main" price
+  const printingsWithPrices = card.printings.map((p) => {
+    const price = fabPriceCache.getPrice(p.tcgplayer_product_id);
+    return {
+      id: p.id,
+      set_id: p.set_id,
+      edition: p.edition,
+      foiling: p.foiling,
+      image: p.image_url,
+      rarity: p.rarity,
+      tcgplayer_product_id: p.tcgplayer_product_id,
+      tcgplayer_url: p.tcgplayer_url,
+      prices: {
+        usd: price.usd,
+        usd_foil: price.usd_foil,
+      },
+    };
+  });
+
+  // Use the first printing's normal price as the card-level headline price
+  const headlinePrice = fabPriceCache.getPrice(firstPrinting?.tcgplayer_product_id);
+  const usd = headlinePrice.usd;
 
   return {
     identifier: firstPrinting?.id || card.unique_id.substring(0, 7),
@@ -80,15 +108,13 @@ function mapFaBCardToAPI(card: FaBCardData) {
     rarity: firstPrinting?.rarity || null,
     keywords: card.card_keywords || [],
     image: firstPrinting?.image_url || null,
-    printings: card.printings.map(p => ({
-      id: p.id,
-      set_id: p.set_id,
-      edition: p.edition,
-      image: p.image_url,
-      rarity: p.rarity,
-      tcgplayer_product_id: p.tcgplayer_product_id,
-    })),
-    prices: { usd: null, cny_converted: null },
+    printings: printingsWithPrices,
+    prices: {
+      usd,
+      usd_foil: headlinePrice.usd_foil,
+      cny_converted: usd !== null ? Math.round(usd * rates.usd_to_cny * 100) / 100 : null,
+      jpy_converted: usd !== null ? Math.round(usd * rates.usd_to_jpy * 100) / 100 : null,
+    },
   };
 }
 
@@ -568,8 +594,11 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Query parameter 'q' is required" });
     }
     try {
+      // Ensure prices are loaded (non-blocking if already fresh)
+      await fabPriceCache.ensureLoaded();
+      const rates = await getExchangeRates();
       const result = fabCardsCache.searchCards(q, page, 20);
-      const cards = result.data.map(mapFaBCardToAPI);
+      const cards = result.data.map((card) => mapFaBCardToAPI(card, rates));
       res.json({
         cards,
         total_cards: result.total,
@@ -586,9 +615,26 @@ export async function registerRoutes(
     try {
       const card = fabCardsCache.getCardByIdentifier(req.params.identifier);
       if (!card) return res.status(404).json({ message: "Card not found" });
-      res.json(mapFaBCardToAPI(card));
+      await fabPriceCache.ensureLoaded();
+      const rates = await getExchangeRates();
+      res.json(mapFaBCardToAPI(card, rates));
     } catch (err: any) {
       res.status(500).json({ message: err.message || "Failed to fetch FAB card" });
+    }
+  });
+
+  // FAB price cache status (admin/debug)
+  app.get("/api/fab/price-cache/status", (_req, res) => {
+    res.json(fabPriceCache.getStatus());
+  });
+
+  // Force refresh FAB prices (admin/debug)
+  app.post("/api/fab/price-cache/refresh", async (_req, res) => {
+    try {
+      await fabPriceCache.refresh();
+      res.json({ success: true, ...fabPriceCache.getStatus() });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
     }
   });
 }
