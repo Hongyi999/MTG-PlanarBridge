@@ -1,0 +1,141 @@
+<view class="page-library">
+  <!-- Search Bar -->
+  <view class="container">
+    <view class="search-bar">
+      <text class="search-icon">⌕</text>
+      <input
+        type="text"
+        placeholder="Search cards..."
+        placeholder-style="color: #5a5a6a"
+        value="{{searchQuery}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearch"
+        confirm-type="search"
+      />
+      <text class="filter-icon" bindtap="toggleFilters">☰</text>
+    </view>
+
+    <!-- Filters Panel -->
+    <view wx:if="{{showFilters}}" class="filters-panel card-panel">
+      <!-- Color Filter -->
+      <view class="filter-section">
+        <text class="filter-label">Color</text>
+        <view class="color-row">
+          <view
+            wx:for="{{colorOptions}}"
+            wx:key="code"
+            class="color-btn {{selectedColors.indexOf(item.code) >= 0 ? 'selected' : ''}}"
+            style="background-color: {{item.color}}; {{item.code === 'B' ? 'border: 2rpx solid #555;' : ''}}"
+            data-code="{{item.code}}"
+            bindtap="toggleColor"
+          >
+            <text wx:if="{{selectedColors.indexOf(item.code) >= 0}}" class="color-check">✓</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- Rarity Filter -->
+      <view class="filter-section">
+        <text class="filter-label">Rarity</text>
+        <view class="filter-tags">
+          <view
+            wx:for="{{rarityOptions}}"
+            wx:key="*this"
+            class="filter-tag {{selectedRarity === item ? 'active' : ''}}"
+            data-rarity="{{item}}"
+            bindtap="selectRarity"
+          >
+            {{item}}
+          </view>
+        </view>
+      </view>
+
+      <!-- Format Filter -->
+      <view class="filter-section">
+        <text class="filter-label">Format</text>
+        <view class="filter-tags">
+          <view
+            wx:for="{{formatOptions}}"
+            wx:key="*this"
+            class="filter-tag {{selectedFormat === item ? 'active' : ''}}"
+            data-format="{{item}}"
+            bindtap="selectFormat"
+          >
+            {{item}}
+          </view>
+        </view>
+      </view>
+
+      <!-- Filter Actions -->
+      <view class="filter-actions">
+        <view class="btn-outline" bindtap="clearFilters">Clear</view>
+        <view class="btn-primary" bindtap="onSearch" style="margin-left: 16rpx;">Apply</view>
+      </view>
+    </view>
+
+    <!-- Results Count -->
+    <view wx:if="{{searched && !loading}}" class="results-info">
+      <text class="text-muted">{{totalCards}} card{{totalCards !== 1 ? 's' : ''}} found</text>
+    </view>
+  </view>
+
+  <!-- Loading -->
+  <view wx:if="{{loading && cards.length === 0}}" class="loading-container">
+    <view class="loading-text">Searching...</view>
+  </view>
+
+  <!-- Card Grid -->
+  <view wx:if="{{cards.length > 0}}" class="container card-grid">
+    <view
+      wx:for="{{cards}}"
+      wx:key="id"
+      class="grid-card"
+      data-card="{{item}}"
+      bindtap="onCardTap"
+    >
+      <image
+        class="grid-card-image"
+        src="{{item.image}}"
+        mode="aspectFit"
+        lazy-load
+      />
+      <view class="grid-card-info">
+        <text class="grid-card-name">{{item.nameCn || item.name}}</text>
+        <text wx:if="{{item.nameCn}}" class="grid-card-name-en">{{item.name}}</text>
+        <view class="grid-card-meta">
+          <text class="grid-card-set">{{item.setCode}}</text>
+          <text style="color: {{item.rarityColor}}; font-size: 22rpx;">{{item.rarityName}}</text>
+        </view>
+        <view class="grid-card-price" wx:if="{{item.priceCny}}">
+          <text class="text-gold">¥{{item.priceCny}}</text>
+          <text class="text-muted" style="font-size: 22rpx; margin-left: 8rpx;">${{item.priceUsd}}</text>
+        </view>
+        <view class="grid-card-price" wx:else>
+          <text class="text-muted" style="font-size: 22rpx;">Price N/A</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Load More -->
+  <view wx:if="{{hasMore && !loading}}" class="container" style="text-align: center; padding-bottom: 32rpx;">
+    <view class="btn-outline" bindtap="loadMore">Load More</view>
+  </view>
+
+  <view wx:if="{{loading && cards.length > 0}}" class="loading-container" style="padding: 32rpx 0;">
+    <view class="loading-text">Loading more...</view>
+  </view>
+
+  <!-- Empty State -->
+  <view wx:if="{{searched && !loading && cards.length === 0}}" class="empty-state">
+    <text class="empty-icon">▣</text>
+    <text class="empty-text">No cards found. Try a different search.</text>
+  </view>
+
+  <!-- Initial State -->
+  <view wx:if="{{!searched && !loading}}" class="empty-state">
+    <text class="empty-icon">⌕</text>
+    <text class="empty-text">Search for MTG cards by name</text>
+    <text class="empty-text" style="font-size: 24rpx; margin-top: 8rpx;">Supports English & 中文</text>
+  </view>
+</view>

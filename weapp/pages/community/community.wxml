@@ -1,0 +1,107 @@
+<view class="page-community">
+  <!-- Filter Tabs -->
+  <view class="filter-bar">
+    <scroll-view scroll-x class="filter-scroll">
+      <view
+        wx:for="{{filterOptions}}"
+        wx:key="key"
+        class="filter-tab {{activeFilter === item.key ? 'active' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onFilterTap"
+      >
+        {{item.label}}
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- Loading -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <view class="loading-text">Loading posts...</view>
+  </view>
+
+  <!-- Posts List -->
+  <view wx:if="{{!loading}}" class="container posts-list">
+    <block wx:for="{{posts}}" wx:key="id">
+      <view wx:if="{{activeFilter === 'all' || item.type === activeFilter}}" class="community-post">
+        <!-- Post Header -->
+        <view class="post-header">
+          <image
+            class="avatar-small"
+            src="{{item.authorAvatar}}"
+            wx:if="{{item.authorAvatar}}"
+          />
+          <view wx:else class="avatar-small avatar-placeholder">
+            <text style="font-size: 24rpx; color: #c9a96e;">◉</text>
+          </view>
+          <view class="post-header-info">
+            <text class="post-author-name">{{item.authorName}}</text>
+            <text class="post-time-text">{{item.timeAgo}}</text>
+          </view>
+          <text class="tag {{item.typeColorClass}}">{{item.typeLabel}}</text>
+        </view>
+
+        <!-- Post Content -->
+        <text class="post-body">{{item.content}}</text>
+
+        <!-- Post Images -->
+        <view wx:if="{{item.images.length > 0}}" class="post-images">
+          <image
+            wx:for="{{item.images}}"
+            wx:for-item="img"
+            wx:for-index="imgIdx"
+            wx:key="imgIdx"
+            class="post-image {{item.images.length === 1 ? 'single' : ''}} {{item.images.length === 2 ? 'double' : ''}} {{item.images.length >= 3 ? 'triple' : ''}}"
+            src="{{img}}"
+            mode="aspectFill"
+            data-urls="{{item.images}}"
+            data-current="{{img}}"
+            bindtap="onPostImageTap"
+          />
+        </view>
+
+        <!-- Linked Card -->
+        <view
+          wx:if="{{item.cardName}}"
+          class="post-linked-card"
+          data-id="{{item.scryfallId}}"
+          bindtap="onCardRefTap"
+        >
+          <image
+            class="linked-card-image"
+            src="{{item.cardImage}}"
+            mode="aspectFit"
+            wx:if="{{item.cardImage}}"
+          />
+          <view class="linked-card-info">
+            <text class="linked-card-name">{{item.cardName}}</text>
+            <text wx:if="{{item.price}}" class="linked-card-price">${{item.price}}</text>
+          </view>
+          <text class="text-muted" style="font-size: 22rpx;">→</text>
+        </view>
+
+        <!-- Post Footer -->
+        <view class="post-actions">
+          <view class="post-action" data-id="{{item.id}}" bindtap="onLike">
+            <text class="action-icon">♡</text>
+            <text class="action-count">{{item.likes}}</text>
+          </view>
+          <view class="post-action">
+            <text class="action-icon">◇</text>
+            <text class="action-count">{{item.comments}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- Empty State -->
+  <view wx:if="{{!loading && posts.length === 0}}" class="empty-state">
+    <text class="empty-icon">◈</text>
+    <text class="empty-text">No posts yet. Be the first!</text>
+  </view>
+
+  <!-- FAB - Create Post -->
+  <view class="fab-button" bindtap="goCreatePost">
+    <text class="fab-icon">+</text>
+  </view>
+</view>

@@ -1,0 +1,126 @@
+<view class="page-home">
+  <!-- Header Banner -->
+  <view class="hero-banner">
+    <view class="hero-title">PlanarBridge</view>
+    <view class="hero-subtitle">MTG & FAB Card Price Tracker</view>
+  </view>
+
+  <!-- Search Bar -->
+  <view class="container">
+    <view class="search-bar">
+      <text class="search-icon">⌕</text>
+      <input
+        type="text"
+        placeholder="Search cards (EN / 中文)"
+        placeholder-style="color: #5a5a6a"
+        value="{{searchQuery}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearch"
+        confirm-type="search"
+      />
+    </view>
+
+    <!-- Format Quick Tags -->
+    <view class="tag-row">
+      <view
+        wx:for="{{formatTags}}"
+        wx:key="name"
+        class="format-tag"
+        data-query="{{item.query}}"
+        bindtap="onTagTap"
+      >
+        {{item.name}}
+      </view>
+    </view>
+  </view>
+
+  <!-- Loading -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <view class="loading-text">Loading...</view>
+  </view>
+
+  <!-- Trending Cards -->
+  <view wx:if="{{!loading && trendingCards.length > 0}}" class="container">
+    <view class="section-header">
+      <text class="section-title">◆ Trending Cards</text>
+    </view>
+
+    <scroll-view scroll-x class="card-scroll">
+      <view class="card-scroll-inner">
+        <view
+          wx:for="{{trendingCards}}"
+          wx:key="id"
+          class="trending-card"
+          data-card="{{item}}"
+          bindtap="onCardTap"
+        >
+          <image
+            class="trending-card-image"
+            src="{{item.image}}"
+            mode="aspectFit"
+            lazy-load
+          />
+          <view class="trending-card-info">
+            <text class="trending-card-name">{{item.nameCn || item.name}}</text>
+            <view class="trending-card-price" wx:if="{{item.priceCny}}">
+              <text class="text-gold">¥{{item.priceCny}}</text>
+              <text class="text-muted" style="margin-left: 8rpx; font-size: 22rpx;">${{item.priceUsd}}</text>
+            </view>
+            <view class="trending-card-price" wx:else>
+              <text class="text-muted">Price N/A</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- Recent Community Posts -->
+  <view wx:if="{{!loading && recentPosts.length > 0}}" class="container">
+    <view class="section-header">
+      <text class="section-title">◆ Community</text>
+      <text class="section-subtitle" bindtap="goToCommunity">View all →</text>
+    </view>
+
+    <view
+      wx:for="{{recentPosts}}"
+      wx:key="id"
+      class="post-card"
+      data-post="{{item}}"
+      bindtap="onPostTap"
+    >
+      <view class="post-header">
+        <image
+          class="avatar-small"
+          src="{{item.authorAvatar}}"
+          wx:if="{{item.authorAvatar}}"
+        />
+        <view wx:else class="avatar-small avatar-placeholder">
+          <text style="font-size: 24rpx;">◉</text>
+        </view>
+        <text class="post-author">{{item.authorName}}</text>
+        <text class="tag {{item.typeColorClass}}">{{item.typeLabel}}</text>
+        <text class="post-time">{{item.timeAgo}}</text>
+      </view>
+      <text class="post-content">{{item.content}}</text>
+      <view wx:if="{{item.cardName}}" class="post-card-ref">
+        <image
+          class="post-card-ref-image"
+          src="{{item.cardImage}}"
+          mode="aspectFit"
+          wx:if="{{item.cardImage}}"
+        />
+        <text class="post-card-ref-name">{{item.cardName}}</text>
+      </view>
+      <view class="post-footer">
+        <text class="post-likes">♡ {{item.likes}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Empty State -->
+  <view wx:if="{{!loading && trendingCards.length === 0 && recentPosts.length === 0}}" class="empty-state">
+    <text class="empty-icon">◇</text>
+    <text class="empty-text">Could not load data. Pull down to refresh.</text>
+  </view>
+</view>

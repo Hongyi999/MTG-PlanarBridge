@@ -1,0 +1,110 @@
+<view class="page-create-post">
+  <view class="container">
+    <!-- Post Type Selector -->
+    <view class="type-selector">
+      <view
+        wx:for="{{typeOptions}}"
+        wx:key="value"
+        class="type-option {{type === item.value ? 'active' : ''}}"
+        data-type="{{item.value}}"
+        bindtap="onTypeChange"
+      >
+        {{item.label}}
+      </view>
+    </view>
+
+    <!-- Content Input -->
+    <view class="content-area">
+      <textarea
+        class="content-input"
+        placeholder="What's on your mind?"
+        placeholder-style="color: #5a5a6a"
+        value="{{content}}"
+        bindinput="onContentInput"
+        maxlength="1000"
+        auto-height
+      />
+      <text class="char-count">{{content.length}}/1000</text>
+    </view>
+
+    <!-- Price Input (for sell/buy/trade) -->
+    <view wx:if="{{type !== 'discussion'}}" class="price-input-row">
+      <text class="price-input-label">Price (USD)</text>
+      <input
+        class="price-input"
+        type="digit"
+        placeholder="0.00"
+        placeholder-style="color: #5a5a6a"
+        value="{{price}}"
+        bindinput="onPriceInput"
+      />
+    </view>
+
+    <!-- Image Upload -->
+    <view class="section-header" style="margin-top: 24rpx;">
+      <text class="section-title" style="font-size: 28rpx;">Images</text>
+      <text class="text-muted">{{images.length}}/{{maxImages}}</text>
+    </view>
+
+    <view class="image-grid">
+      <view
+        wx:for="{{images}}"
+        wx:key="*this"
+        class="image-preview-item"
+      >
+        <image class="image-preview" src="{{item}}" mode="aspectFill" />
+        <view class="image-remove" data-index="{{index}}" bindtap="removeImage">×</view>
+      </view>
+
+      <view
+        wx:if="{{images.length < maxImages}}"
+        class="image-add-btn"
+        bindtap="chooseImage"
+      >
+        <text class="image-add-icon">+</text>
+        <text class="image-add-text">Photo</text>
+      </view>
+    </view>
+
+    <!-- Link Card -->
+    <view class="section-header" style="margin-top: 24rpx;">
+      <text class="section-title" style="font-size: 28rpx;">Link a Card (optional)</text>
+    </view>
+
+    <view wx:if="{{!linkedCard}}" class="card-search-row">
+      <input
+        class="card-search-input"
+        placeholder="Search card name..."
+        placeholder-style="color: #5a5a6a"
+        value="{{cardSearch}}"
+        bindinput="onCardSearchInput"
+        bindconfirm="searchCard"
+      />
+      <view class="btn-outline" style="flex-shrink: 0; margin-left: 12rpx;" bindtap="searchCard">Find</view>
+    </view>
+
+    <view wx:if="{{linkedCard}}" class="linked-card-preview">
+      <image
+        wx:if="{{linkedCard.image}}"
+        class="linked-preview-image"
+        src="{{linkedCard.image}}"
+        mode="aspectFit"
+      />
+      <view class="linked-preview-info">
+        <text class="linked-preview-name">{{linkedCard.nameCn || linkedCard.name}}</text>
+        <text wx:if="{{linkedCard.nameCn}}" class="linked-preview-name-en">{{linkedCard.name}}</text>
+      </view>
+      <text class="linked-remove" bindtap="removeLinkedCard">×</text>
+    </view>
+
+    <!-- Submit Button -->
+    <view class="submit-section">
+      <view
+        class="btn-primary submit-btn {{submitting ? 'disabled' : ''}}"
+        bindtap="submitPost"
+      >
+        {{submitting ? 'Posting...' : 'Post'}}
+      </view>
+    </view>
+  </view>
+</view>

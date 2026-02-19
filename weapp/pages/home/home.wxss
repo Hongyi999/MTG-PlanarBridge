@@ -1,0 +1,176 @@
+/* Home Page Styles */
+
+.hero-banner {
+  background: linear-gradient(135deg, #1a1a2e 0%, #252540 50%, #1a1a2e 100%);
+  padding: 48rpx 32rpx 32rpx;
+  text-align: center;
+  border-bottom: 1rpx solid rgba(201, 169, 110, 0.2);
+}
+
+.hero-title {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #c9a96e;
+  letter-spacing: 4rpx;
+}
+
+.hero-subtitle {
+  font-size: 24rpx;
+  color: #8a8a9a;
+  margin-top: 8rpx;
+  letter-spacing: 2rpx;
+}
+
+/* Format Tags */
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.format-tag {
+  padding: 10rpx 24rpx;
+  background: rgba(201, 169, 110, 0.1);
+  border: 1rpx solid rgba(201, 169, 110, 0.2);
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  color: #c9a96e;
+}
+
+.format-tag:active {
+  background: rgba(201, 169, 110, 0.25);
+}
+
+/* Trending Cards - Horizontal Scroll */
+.card-scroll {
+  white-space: nowrap;
+  margin: 0 -32rpx;
+  padding: 0 32rpx;
+}
+
+.card-scroll-inner {
+  display: inline-flex;
+  gap: 20rpx;
+  padding-right: 32rpx;
+}
+
+.trending-card {
+  display: inline-flex;
+  flex-direction: column;
+  width: 240rpx;
+  background-color: #1a1a2e;
+  border-radius: 16rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(201, 169, 110, 0.15);
+  flex-shrink: 0;
+}
+
+.trending-card:active {
+  opacity: 0.85;
+}
+
+.trending-card-image {
+  width: 240rpx;
+  height: 336rpx;
+  background-color: #252540;
+}
+
+.trending-card-info {
+  padding: 12rpx 16rpx;
+  white-space: normal;
+}
+
+.trending-card-name {
+  font-size: 24rpx;
+  color: #e0d8c8;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.trending-card-price {
+  margin-top: 6rpx;
+  font-size: 26rpx;
+}
+
+/* Community Post Cards */
+.post-card {
+  background-color: #1a1a2e;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid rgba(201, 169, 110, 0.1);
+}
+
+.post-card:active {
+  background-color: #202038;
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #252540;
+  color: #c9a96e;
+}
+
+.post-author {
+  font-size: 26rpx;
+  color: #e0d8c8;
+  margin-left: 12rpx;
+  flex: 1;
+}
+
+.post-time {
+  font-size: 22rpx;
+  color: #5a5a6a;
+  margin-left: 12rpx;
+}
+
+.post-content {
+  font-size: 28rpx;
+  color: #c0b8a8;
+  line-height: 1.6;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.post-card-ref {
+  display: flex;
+  align-items: center;
+  background-color: #252540;
+  border-radius: 12rpx;
+  padding: 12rpx 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.post-card-ref-image {
+  width: 48rpx;
+  height: 68rpx;
+  border-radius: 4rpx;
+  margin-right: 12rpx;
+  background-color: #1a1a2e;
+}
+
+.post-card-ref-name {
+  font-size: 24rpx;
+  color: #c9a96e;
+}
+
+.post-footer {
+  display: flex;
+  align-items: center;
+}
+
+.post-likes {
+  font-size: 24rpx;
+  color: #5a5a6a;
+}
