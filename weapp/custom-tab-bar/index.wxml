@@ -8,6 +8,5 @@
   >
     <text class="tab-icon">{{item.icon}}</text>
     <text class="tab-label">{{item.text}}</text>
-    <view wx:if="{{selected === index}}" class="tab-indicator"></view>
   </view>
 </view>

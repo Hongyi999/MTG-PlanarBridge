@@ -1,6 +1,18 @@
 const api = require('../../utils/api');
 const util = require('../../utils/util');
 
+// Chinese format names for legalities
+var FORMAT_NAMES = {
+  standard:  '标准',
+  pioneer:   '先驱',
+  modern:    '现代',
+  legacy:    '薪传',
+  vintage:   '特选',
+  commander: '统帅',
+  pauper:    '平民',
+  brawl:     '混战'
+};
+
 Page({
   data: {
     scryfallId: '',
@@ -9,7 +21,6 @@ Page({
     isFollowed: false,
     priceHistory: [],
 
-    // Computed display data
     displayName: '',
     displayNameEn: '',
     displayImage: '',
@@ -21,7 +32,6 @@ Page({
     displayRarityColor: '',
     displayArtist: '',
 
-    // Prices
     priceUsd: null,
     priceUsdFoil: null,
     priceEur: null,
@@ -30,8 +40,8 @@ Page({
     priceCnyFoil: null,
     priceJpy: null,
 
-    // Legalities
-    legalities: []
+    legalities: [],
+    manaSymbols: []
   },
 
   onLoad(options) {
@@ -45,44 +55,50 @@ Page({
 
   async loadCard(scryfallId) {
     this.setData({ loading: true });
-
     try {
       const card = await api.get('/api/cards/scryfall/' + scryfallId);
       if (!card) {
-        wx.showToast({ title: 'Card not found', icon: 'none' });
+        wx.showToast({ title: '卡牌未找到', icon: 'none' });
         this.setData({ loading: false });
         return;
       }
 
-      // Process card data for display
-      const displayName = card.printed_name || card.name || '';
-      const displayNameEn = card.name || '';
+      // Support both cached CardData format and raw Scryfall format
+      const displayName = card.name_cn || card.printed_name || card.name_en || card.name || '';
+      const displayNameEn = card.name_en || card.name || '';
       const displayImage = util.getCardImage(card, 'large') || util.getCardImage(card, 'normal');
-      const displayTypeLine = card.printed_type_line || card.type_line || '';
-      const displayOracleText = card.printed_text || card.oracle_text || '';
+      const displayTypeLine = card.type_line_cn || card.printed_type_line || card.type_line || '';
+      const displayOracleText = card.oracle_text_cn || card.printed_text || card.oracle_text || '';
       const displayManaCost = card.mana_cost || '';
-      const displaySet = (card.set_name || '') + (card.set ? ' (' + card.set.toUpperCase() + ')' : '');
+      const setName = card.set_name || '';
+      const setCode = (card.set_code || card.set || '').toUpperCase();
+      const displaySet = setName + (setCode ? ' (' + setCode + ')' : '');
       const displayRarity = util.getRarityName(card.rarity);
       const displayRarityColor = util.getRarityColor(card.rarity);
       const displayArtist = card.artist || '';
 
-      // Process prices
+      // Prices — support both cached format and raw Scryfall format
       const prices = card.prices || {};
       const priceUsd = prices.usd || null;
       const priceUsdFoil = prices.usd_foil || null;
       const priceEur = prices.eur || null;
       const priceTix = prices.tix || null;
-      const priceCny = util.usdToCny(priceUsd);
-      const priceCnyFoil = util.usdToCny(priceUsdFoil);
+      // Try cached CNY conversion first, then compute from USD
+      const priceCny = prices.cny_converted != null
+        ? prices.cny_converted
+        : util.usdToCny(priceUsd);
+      const priceCnyFoil = prices.cny_foil_converted != null
+        ? prices.cny_foil_converted
+        : util.usdToCny(priceUsdFoil);
       const priceJpy = util.usdToJpy(priceUsd);
 
-      // Process legalities
+      // Legalities
       const legalitiesObj = card.legalities || {};
       const formatOrder = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'commander', 'pauper', 'brawl'];
       const legalities = formatOrder.map(function(fmt) {
         const status = legalitiesObj[fmt] || 'not_legal';
         return {
-          format: fmt.charAt(0).toUpperCase() + fmt.slice(1),
+          format: FORMAT_NAMES[fmt] || fmt,
           status: status,
           isLegal: status === 'legal',
           isBanned: status === 'banned',
@@ -90,7 +106,6 @@ Page({
         };
       });
 
-      // Parse mana symbols
       const manaSymbols = util.parseMana(displayManaCost);
 
       this.setData({
@@ -117,14 +132,11 @@ Page({
         manaSymbols: manaSymbols
       });
 
-      // Set navigation bar title
       wx.setNavigationBarTitle({ title: displayName || displayNameEn });
-
-      // Record to view history
       this.recordHistory(card);
     } catch (err) {
       console.error('[CardDetail] Failed to load card:', err);
-      wx.showToast({ title: 'Failed to load card', icon: 'none' });
+      wx.showToast({ title: '加载失败，请重试', icon: 'none' });
       this.setData({ loading: false });
     }
   },
@@ -132,86 +144,77 @@ Page({
   async checkFollowed(scryfallId) {
     try {
       const followedCards = await api.get('/api/followed-cards');
+      const cardId = scryfallId;
       const isFollowed = (followedCards || []).some(function(fc) {
-        return fc.scryfallId === scryfallId;
+        return fc.scryfallId === cardId;
       });
       this.setData({ isFollowed: isFollowed });
-    } catch (err) {
-      // Not critical
-    }
+    } catch (err) {}
   },
 
   async loadPriceHistory(scryfallId) {
     try {
       const history = await api.get('/api/price-history/' + scryfallId, { days: 90 });
       this.setData({ priceHistory: history || [] });
-    } catch (err) {
-      // Not critical
-    }
+    } catch (err) {}
   },
 
   async recordHistory(card) {
     try {
       await api.post('/api/card-history', {
-        scryfallId: card.id,
-        cardName: card.name,
-        cardNameCn: card.printed_name || '',
+        scryfallId: util.getCardId(card),
+        cardName: util.getCardNameEn(card),
+        cardNameCn: util.getCardName(card),
         cardImage: util.getCardImage(card, 'small')
       });
-    } catch (err) {
-      // Not critical
-    }
+    } catch (err) {}
   },
 
   async toggleFollow() {
     const card = this.data.card;
     if (!card) return;
+    const cardId = util.getCardId(card);
 
     if (this.data.isFollowed) {
-      // Unfollow
       try {
         const followedCards = await api.get('/api/followed-cards');
         const followed = (followedCards || []).find(function(fc) {
-          return fc.scryfallId === card.id;
+          return fc.scryfallId === cardId;
         });
         if (followed) {
           await api.del('/api/followed-cards/' + followed.id);
           this.setData({ isFollowed: false });
-          wx.showToast({ title: 'Unfollowed', icon: 'success' });
+          wx.showToast({ title: '已取消关注', icon: 'success' });
         }
       } catch (err) {
-        wx.showToast({ title: 'Failed to unfollow', icon: 'none' });
+        wx.showToast({ title: '操作失败', icon: 'none' });
       }
     } else {
-      // Follow
       try {
         await api.post('/api/followed-cards', {
-          scryfallId: card.id,
-          cardName: card.name,
-          cardNameCn: card.printed_name || '',
+          scryfallId: cardId,
+          cardName: util.getCardNameEn(card),
+          cardNameCn: util.getCardName(card),
           cardImage: util.getCardImage(card, 'small')
         });
         this.setData({ isFollowed: true });
-        wx.showToast({ title: 'Following', icon: 'success' });
+        wx.showToast({ title: '已关注', icon: 'success' });
       } catch (err) {
-        wx.showToast({ title: 'Failed to follow', icon: 'none' });
+        wx.showToast({ title: '操作失败', icon: 'none' });
       }
     }
   },
 
   previewImage() {
     if (this.data.displayImage) {
-      wx.previewImage({
-        urls: [this.data.displayImage],
-        current: this.data.displayImage
-      });
+      wx.previewImage({ urls: [this.data.displayImage], current: this.data.displayImage });
     }
   },
 
   onShareAppMessage() {
     const card = this.data.card;
     return {
-      title: (card ? card.name : 'Card Detail') + ' - PlanarBridge',
+      title: (this.data.displayName || '卡牌详情') + ' - PlanarBridge',
       path: '/pages/card-detail/card-detail?scryfallId=' + this.data.scryfallId,
       imageUrl: this.data.displayImage
     };

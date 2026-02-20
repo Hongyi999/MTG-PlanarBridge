@@ -1,11 +1,14 @@
 <view class="page-card-detail">
-  <!-- Loading -->
-  <view wx:if="{{loading}}" class="loading-container" style="min-height: 60vh;">
-    <view class="loading-text">Loading card...</view>
+
+  <!-- ===== 加载中 ===== -->
+  <view wx:if="{{loading}}" class="loading-center">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
   </view>
 
   <block wx:if="{{card && !loading}}">
-    <!-- Card Image -->
+
+    <!-- ===== 卡牌图片 ===== -->
     <view class="card-image-section">
       <image
         class="card-main-image"
@@ -16,137 +19,132 @@
       />
     </view>
 
-    <!-- Card Info -->
-    <view class="container">
-      <!-- Name & Mana Cost -->
+    <!-- ===== 卡牌信息 ===== -->
+    <view class="card-info-body">
+
+      <!-- 名称 + 法术力费用 -->
       <view class="card-title-row">
         <view class="card-titles">
           <text class="card-display-name">{{displayName}}</text>
           <text wx:if="{{displayName !== displayNameEn}}" class="card-name-en">{{displayNameEn}}</text>
         </view>
         <view wx:if="{{manaSymbols.length > 0}}" class="mana-row">
-          <view
-            wx:for="{{manaSymbols}}"
-            wx:key="*this"
-            class="mana-symbol"
-          >
-            {{item}}
-          </view>
+          <view wx:for="{{manaSymbols}}" wx:key="*this" class="mana-symbol">{{item}}</view>
         </view>
       </view>
 
-      <!-- Type Line -->
+      <!-- 牌型 -->
       <text class="card-type-line">{{displayTypeLine}}</text>
 
-      <!-- Set & Rarity -->
+      <!-- 系列 + 稀有度 -->
       <view class="card-set-row">
         <text class="card-set-name">{{displaySet}}</text>
         <text class="card-rarity" style="color: {{displayRarityColor}};">{{displayRarity}}</text>
       </view>
 
-      <!-- Follow Button -->
-      <view class="follow-row">
-        <view class="{{isFollowed ? 'btn-outline' : 'btn-primary'}}" bindtap="toggleFollow" style="flex: 1; text-align: center;">
-          {{isFollowed ? '★ Following' : '☆ Follow Price'}}
+      <!-- 关注 + 分享 -->
+      <view class="action-row">
+        <view
+          class="follow-btn {{isFollowed ? 'follow-btn-active' : ''}}"
+          bindtap="toggleFollow"
+        >
+          <text>{{isFollowed ? '★ 已关注' : '☆ 关注价格'}}</text>
         </view>
-        <button class="share-btn" open-type="share">Share</button>
+        <button class="share-btn" open-type="share">分享</button>
       </view>
 
+      <!-- 分隔线 -->
       <view class="divider"></view>
 
-      <!-- Prices Section -->
+      <!-- ===== 价格 ===== -->
       <view class="section-header">
-        <text class="section-title">◆ Prices</text>
+        <text class="section-title">◆ 价格</text>
       </view>
 
-      <view class="card-panel">
-        <!-- CNY (Primary for Chinese users) -->
+      <view class="price-card">
+        <!-- 人民币 -->
         <view class="price-row" wx:if="{{priceCny}}">
-          <text class="price-label">CNY (est.)</text>
+          <text class="price-label">人民币（估算）</text>
           <text class="price-value">¥{{priceCny}}</text>
         </view>
         <view class="price-row" wx:if="{{priceCnyFoil}}">
-          <text class="price-label">CNY Foil (est.)</text>
+          <text class="price-label">人民币 闪（估算）</text>
           <text class="price-value">¥{{priceCnyFoil}}</text>
         </view>
         <view class="price-row" wx:if="{{priceJpy}}">
-          <text class="price-label">JPY (est.)</text>
+          <text class="price-label">日元（估算）</text>
           <text class="price-value-secondary">¥{{priceJpy}}</text>
         </view>
 
-        <view class="divider" wx:if="{{priceCny}}"></view>
+        <view class="inner-divider" wx:if="{{priceCny && priceUsd}}"></view>
 
-        <!-- USD -->
+        <!-- 美元 -->
         <view class="price-row" wx:if="{{priceUsd}}">
-          <text class="price-label">USD</text>
+          <text class="price-label">美元</text>
           <text class="price-value">${{priceUsd}}</text>
         </view>
         <view class="price-row" wx:if="{{priceUsdFoil}}">
-          <text class="price-label">USD Foil</text>
+          <text class="price-label">美元 闪</text>
           <text class="price-value">${{priceUsdFoil}}</text>
         </view>
-        <!-- EUR -->
+        <!-- 欧元 -->
         <view class="price-row" wx:if="{{priceEur}}">
-          <text class="price-label">EUR</text>
+          <text class="price-label">欧元</text>
           <text class="price-value-secondary">€{{priceEur}}</text>
         </view>
-        <!-- TIX -->
+        <!-- MTGO -->
         <view class="price-row" wx:if="{{priceTix}}">
           <text class="price-label">MTGO TIX</text>
           <text class="price-value-secondary">{{priceTix}} TIX</text>
         </view>
 
-        <view wx:if="{{!priceUsd && !priceCny}}" style="text-align: center; padding: 16rpx 0;">
-          <text class="text-muted">No price data available</text>
+        <!-- 无价格 -->
+        <view wx:if="{{!priceUsd && !priceCny}}" class="no-price">
+          <text class="no-price-text">暂无价格数据</text>
         </view>
       </view>
 
-      <!-- Price History -->
-      <view wx:if="{{priceHistory.length > 0}}" class="card-panel">
-        <view class="section-header" style="margin-bottom: 12rpx;">
-          <text class="section-title" style="font-size: 28rpx;">Price History (90 days)</text>
-        </view>
+      <!-- ===== 价格历史 ===== -->
+      <view wx:if="{{priceHistory.length > 0}}" class="price-card" style="margin-top: 0; margin-bottom: 20rpx;">
+        <text class="subsection-title">90 天历史价格</text>
         <view class="price-history-list">
           <view wx:for="{{priceHistory}}" wx:key="id" wx:if="{{index < 10}}" class="price-history-item">
-            <text class="text-muted" style="font-size: 22rpx;">{{item.source}} · {{item.condition || 'NM'}}</text>
-            <text class="text-gold" style="font-size: 24rpx;" wx:if="{{item.priceUsd}}">${{item.priceUsd}}</text>
+            <text class="price-history-label">{{item.source}} · {{item.condition || 'NM'}}</text>
+            <text class="price-history-val" wx:if="{{item.priceUsd}}">${{item.priceUsd}}</text>
           </view>
         </view>
       </view>
 
-      <!-- Oracle Text -->
-      <view wx:if="{{displayOracleText}}" class="card-panel">
-        <view class="section-header" style="margin-bottom: 12rpx;">
-          <text class="section-title" style="font-size: 28rpx;">Oracle Text</text>
-        </view>
+      <!-- ===== 规则文字 ===== -->
+      <view wx:if="{{displayOracleText}}" class="oracle-card">
+        <text class="subsection-title">规则文字</text>
         <text class="oracle-text">{{displayOracleText}}</text>
       </view>
 
-      <!-- Artist -->
-      <view wx:if="{{displayArtist}}" style="margin-bottom: 24rpx;">
-        <text class="text-muted" style="font-size: 24rpx;">Illustrated by {{displayArtist}}</text>
+      <!-- 画师 -->
+      <view wx:if="{{displayArtist}}" class="artist-row">
+        <text class="artist-text">绘制：{{displayArtist}}</text>
       </view>
 
-      <!-- Legalities -->
+      <!-- 分隔线 -->
+      <view class="divider"></view>
+
+      <!-- ===== 赛制合法性 ===== -->
       <view class="section-header">
-        <text class="section-title">◆ Format Legality</text>
+        <text class="section-title">◆ 赛制合法性</text>
       </view>
 
       <view class="legalities-grid">
-        <view
-          wx:for="{{legalities}}"
-          wx:key="format"
-          class="legality-item"
-        >
+        <view wx:for="{{legalities}}" wx:key="format" class="legality-item">
           <text class="legality-format">{{item.format}}</text>
           <text class="legality-status {{item.isLegal ? 'legal' : ''}} {{item.isBanned ? 'banned' : ''}} {{item.isRestricted ? 'restricted' : ''}}">
-            {{item.isLegal ? '✓ Legal' : item.isBanned ? '✗ Banned' : item.isRestricted ? '◐ Restricted' : '—'}}
+            {{item.isLegal ? '✓ 合法' : item.isBanned ? '✗ 禁止' : item.isRestricted ? '◐ 限制' : '—'}}
           </text>
         </view>
       </view>
 
-      <!-- Bottom spacing -->
-      <view style="height: 60rpx;"></view>
+      <view style="height: 80rpx;"></view>
     </view>
   </block>
+
 </view>

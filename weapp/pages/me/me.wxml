@@ -1,52 +1,63 @@
 <view class="page-me">
-  <!-- Profile Header -->
-  <view class="profile-header">
-    <view wx:if="{{isLoggedIn && userInfo}}" class="profile-info">
-      <image
-        class="profile-avatar"
-        src="{{userInfo.avatar}}"
-        wx:if="{{userInfo.avatar}}"
-      />
-      <view wx:else class="profile-avatar profile-avatar-placeholder">
-        <text style="font-size: 56rpx; color: #c9a96e;">◉</text>
+
+  <!-- ===== 顶部标题 ===== -->
+  <view class="me-header px-container">
+    <text class="page-title">我的</text>
+  </view>
+
+  <!-- ===== 用户资料卡 ===== -->
+  <view class="profile-card px-container">
+    <view class="profile-inner">
+      <!-- 已登录 -->
+      <view wx:if="{{isLoggedIn && userInfo}}" class="profile-row">
+        <image
+          class="profile-avatar"
+          src="{{userInfo.avatar}}"
+          mode="aspectFill"
+          wx:if="{{userInfo.avatar}}"
+        />
+        <view wx:else class="profile-avatar avatar-placeholder">
+          <text style="font-size: 56rpx; color: #8b6914;">◉</text>
+        </view>
+        <view class="profile-details">
+          <text class="profile-name">{{userInfo.username || userInfo.wechatNickname || '用户'}}</text>
+          <text wx:if="{{userInfo.phone}}" class="profile-phone">{{userInfo.phone}}</text>
+        </view>
       </view>
-      <view class="profile-details">
-        <text class="profile-name">{{userInfo.username || userInfo.wechatNickname || 'User'}}</text>
-        <text class="profile-id" wx:if="{{userInfo.phone}}">{{userInfo.phone}}</text>
+
+      <!-- 未登录 -->
+      <view wx:else class="profile-row" bindtap="goLogin">
+        <view class="profile-avatar avatar-placeholder">
+          <text style="font-size: 56rpx; color: #8a7a5a;">◉</text>
+        </view>
+        <view class="profile-details">
+          <text class="profile-name" style="color: #8a7a5a;">未登录</text>
+          <text class="profile-login-link">点击登录 →</text>
+        </view>
       </view>
     </view>
 
-    <view wx:else class="profile-login-prompt">
-      <view class="profile-avatar profile-avatar-placeholder">
-        <text style="font-size: 56rpx; color: #5a5a6a;">◉</text>
+    <!-- 统计数据 -->
+    <view class="stats-row">
+      <view class="stat-item">
+        <text class="stat-number">{{followedCount}}</text>
+        <text class="stat-label">关注</text>
       </view>
-      <view class="profile-details">
-        <text class="profile-name" style="color: #8a8a9a;">Not logged in</text>
-        <text class="profile-login-link" bindtap="goLogin">Log in →</text>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-number">{{priceListCount}}</text>
+        <text class="stat-label">列表</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-number">{{historyCount}}</text>
+        <text class="stat-label">足迹</text>
       </view>
     </view>
   </view>
 
-  <!-- Stats Bar -->
-  <view class="stats-bar">
-    <view class="stat-item">
-      <text class="stat-number">{{followedCount}}</text>
-      <text class="stat-label">Following</text>
-    </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item">
-      <text class="stat-number">{{priceListCount}}</text>
-      <text class="stat-label">Lists</text>
-    </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item">
-      <text class="stat-number">{{historyCount}}</text>
-      <text class="stat-label">History</text>
-    </view>
-  </view>
-
-  <!-- Menu Items -->
-  <view class="container">
+  <!-- ===== 功能菜单 ===== -->
+  <view class="px-container">
     <view class="menu-section">
       <view
         wx:for="{{menuItems}}"
@@ -64,20 +75,17 @@
       </view>
     </view>
 
-    <!-- Logout Button -->
-    <view wx:if="{{isLoggedIn}}" class="logout-section">
-      <view class="btn-outline" style="width: 100%; text-align: center;" bindtap="onLogout">
-        Log Out
-      </view>
+    <!-- 退出登录 -->
+    <view wx:if="{{isLoggedIn}}" class="logout-wrap">
+      <view class="logout-btn" bindtap="onLogout">退出登录</view>
     </view>
 
-    <!-- About -->
+    <!-- 关于 -->
     <view class="about-section">
       <text class="about-text">PlanarBridge v1.0</text>
-      <text class="about-text">MTG & FAB Card Price Tracker</text>
-      <text class="about-text" style="margin-top: 8rpx;">
-        Card data: Scryfall · TCGTracking · TCGCSV
-      </text>
+      <text class="about-text">MTG & FAB 卡牌价格追踪</text>
+      <text class="about-text" style="margin-top: 8rpx;">数据来源：Scryfall · TCGPlayer · TCGCSV</text>
     </view>
   </view>
+
 </view>

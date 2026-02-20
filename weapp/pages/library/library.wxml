@@ -1,141 +1,153 @@
 <view class="page-library">
-  <!-- Search Bar -->
-  <view class="container">
+
+  <!-- ===== 顶部标题 + 游戏切换 ===== -->
+  <view class="lib-header">
+    <text class="page-title">{{currentGame === 'fab' ? 'FAB 卡库' : '卡牌库'}}</text>
+    <view class="header-actions">
+      <view class="game-switch-btn" bindtap="toggleGame">
+        <text class="game-switch-text">{{currentGame === 'fab' ? 'FAB' : 'MTG'}}</text>
+        <text style="font-size: 20rpx; margin-left: 6rpx; color: #8a7a5a;">⇄</text>
+      </view>
+      <view wx:if="{{currentGame === 'mtg'}}" class="filter-btn" bindtap="toggleFilters">
+        <text class="filter-btn-text">筛选</text>
+        <text wx:if="{{hasActiveFilters}}" class="filter-dot"></text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 搜索框 ===== -->
+  <view class="px-container">
     <view class="search-bar">
-      <text class="search-icon">⌕</text>
+      <text class="search-icon">🔍</text>
       <input
+        class="search-input"
         type="text"
-        placeholder="Search cards..."
-        placeholder-style="color: #5a5a6a"
+        placeholder="{{currentGame === 'fab' ? '搜索FAB卡牌...' : '搜索MTG卡牌（中文 / EN）...'}}"
+        placeholder-style="color: #8a7a5a; font-size: 28rpx;"
         value="{{searchQuery}}"
         bindinput="onSearchInput"
         bindconfirm="onSearch"
         confirm-type="search"
       />
-      <text class="filter-icon" bindtap="toggleFilters">☰</text>
+      <view wx:if="{{searchQuery}}" class="search-clear" bindtap="clearSearch">
+        <text style="font-size: 28rpx; color: #8a7a5a;">✕</text>
+      </view>
     </view>
 
-    <!-- Filters Panel -->
-    <view wx:if="{{showFilters}}" class="filters-panel card-panel">
-      <!-- Color Filter -->
+    <!-- 结果数量 -->
+    <view wx:if="{{searched && !loading}}" class="results-info">
+      <text class="results-text">找到 {{totalCards}} 张卡牌</text>
+    </view>
+  </view>
+
+  <!-- ===== 筛选面板 ===== -->
+  <view wx:if="{{showFilters}}" class="filters-panel px-container">
+    <view class="filters-card">
+      <!-- 颜色 -->
       <view class="filter-section">
-        <text class="filter-label">Color</text>
+        <text class="filter-label">颜色</text>
         <view class="color-row">
           <view
             wx:for="{{colorOptions}}"
             wx:key="code"
             class="color-btn {{selectedColors.indexOf(item.code) >= 0 ? 'selected' : ''}}"
-            style="background-color: {{item.color}}; {{item.code === 'B' ? 'border: 2rpx solid #555;' : ''}}"
+            style="background-color: {{item.color}};"
             data-code="{{item.code}}"
             bindtap="toggleColor"
           >
-            <text wx:if="{{selectedColors.indexOf(item.code) >= 0}}" class="color-check">✓</text>
+            <text wx:if="{{selectedColors.indexOf(item.code) >= 0}}" style="color: white; font-size: 24rpx; font-weight: bold; text-shadow: 0 1rpx 2rpx rgba(0,0,0,0.6);">✓</text>
           </view>
         </view>
       </view>
 
-      <!-- Rarity Filter -->
+      <!-- 稀有度 -->
       <view class="filter-section">
-        <text class="filter-label">Rarity</text>
+        <text class="filter-label">稀有度</text>
         <view class="filter-tags">
           <view
             wx:for="{{rarityOptions}}"
-            wx:key="*this"
-            class="filter-tag {{selectedRarity === item ? 'active' : ''}}"
-            data-rarity="{{item}}"
+            wx:key="key"
+            class="filter-tag {{selectedRarity === item.key ? 'active' : ''}}"
+            data-rarity="{{item.key}}"
             bindtap="selectRarity"
           >
-            {{item}}
+            {{item.label}}
           </view>
         </view>
       </view>
 
-      <!-- Format Filter -->
+      <!-- 赛制 -->
       <view class="filter-section">
-        <text class="filter-label">Format</text>
+        <text class="filter-label">赛制</text>
         <view class="filter-tags">
           <view
             wx:for="{{formatOptions}}"
-            wx:key="*this"
-            class="filter-tag {{selectedFormat === item ? 'active' : ''}}"
-            data-format="{{item}}"
+            wx:key="key"
+            class="filter-tag {{selectedFormat === item.key ? 'active' : ''}}"
+            data-format="{{item.key}}"
             bindtap="selectFormat"
           >
-            {{item}}
+            {{item.label}}
           </view>
         </view>
       </view>
 
-      <!-- Filter Actions -->
+      <!-- 操作按钮 -->
       <view class="filter-actions">
-        <view class="btn-outline" bindtap="clearFilters">Clear</view>
-        <view class="btn-primary" bindtap="onSearch" style="margin-left: 16rpx;">Apply</view>
+        <view class="filter-clear-btn" bindtap="clearFilters">清除</view>
+        <view class="filter-apply-btn" bindtap="onSearch">应用筛选</view>
       </view>
     </view>
-
-    <!-- Results Count -->
-    <view wx:if="{{searched && !loading}}" class="results-info">
-      <text class="text-muted">{{totalCards}} card{{totalCards !== 1 ? 's' : ''}} found</text>
-    </view>
   </view>
 
-  <!-- Loading -->
-  <view wx:if="{{loading && cards.length === 0}}" class="loading-container">
-    <view class="loading-text">Searching...</view>
+  <!-- ===== 加载中 ===== -->
+  <view wx:if="{{loading && cards.length === 0}}" class="loading-center">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">搜索中...</text>
   </view>
 
-  <!-- Card Grid -->
-  <view wx:if="{{cards.length > 0}}" class="container card-grid">
+  <!-- ===== 卡片列表 ===== -->
+  <view wx:if="{{cards.length > 0}}" class="card-grid-wrap px-container">
     <view
       wx:for="{{cards}}"
       wx:key="id"
       class="grid-card"
-      data-card="{{item}}"
+      data-id="{{item.id}}"
       bindtap="onCardTap"
     >
-      <image
-        class="grid-card-image"
-        src="{{item.image}}"
-        mode="aspectFit"
-        lazy-load
-      />
-      <view class="grid-card-info">
-        <text class="grid-card-name">{{item.nameCn || item.name}}</text>
-        <text wx:if="{{item.nameCn}}" class="grid-card-name-en">{{item.name}}</text>
+      <image class="grid-card-image" src="{{item.image}}" mode="aspectFill" lazy-load />
+      <view class="grid-card-body">
+        <text class="grid-card-cn">{{item.nameCn || item.nameEn}}</text>
+        <text wx:if="{{item.nameCn}}" class="grid-card-en">{{item.nameEn}}</text>
         <view class="grid-card-meta">
           <text class="grid-card-set">{{item.setCode}}</text>
-          <text style="color: {{item.rarityColor}}; font-size: 22rpx;">{{item.rarityName}}</text>
+          <text class="grid-card-rarity" style="color: {{item.rarityColor}};">{{item.rarityName}}</text>
         </view>
-        <view class="grid-card-price" wx:if="{{item.priceCny}}">
-          <text class="text-gold">¥{{item.priceCny}}</text>
-          <text class="text-muted" style="font-size: 22rpx; margin-left: 8rpx;">${{item.priceUsd}}</text>
-        </view>
-        <view class="grid-card-price" wx:else>
-          <text class="text-muted" style="font-size: 22rpx;">Price N/A</text>
-        </view>
+        <text class="grid-card-price">{{item.priceCny ? '¥' + item.priceCny : (item.priceUsd ? '$' + item.priceUsd : '--')}}</text>
       </view>
     </view>
   </view>
 
-  <!-- Load More -->
-  <view wx:if="{{hasMore && !loading}}" class="container" style="text-align: center; padding-bottom: 32rpx;">
-    <view class="btn-outline" bindtap="loadMore">Load More</view>
+  <!-- ===== 加载更多 ===== -->
+  <view wx:if="{{hasMore && !loading}}" class="load-more-wrap px-container">
+    <view class="load-more-btn" bindtap="loadMore">加载更多</view>
+  </view>
+  <view wx:if="{{loading && cards.length > 0}}" class="loading-center" style="padding: 32rpx 0;">
+    <view class="loading-spinner"></view>
   </view>
 
-  <view wx:if="{{loading && cards.length > 0}}" class="loading-container" style="padding: 32rpx 0;">
-    <view class="loading-text">Loading more...</view>
-  </view>
-
-  <!-- Empty State -->
+  <!-- ===== 无结果 ===== -->
   <view wx:if="{{searched && !loading && cards.length === 0}}" class="empty-state">
-    <text class="empty-icon">▣</text>
-    <text class="empty-text">No cards found. Try a different search.</text>
+    <text class="empty-icon">🔍</text>
+    <text class="empty-title">未找到相关卡牌</text>
+    <text class="empty-sub">试试其他关键词</text>
   </view>
 
-  <!-- Initial State -->
+  <!-- ===== 初始提示 ===== -->
   <view wx:if="{{!searched && !loading}}" class="empty-state">
-    <text class="empty-icon">⌕</text>
-    <text class="empty-text">Search for MTG cards by name</text>
-    <text class="empty-text" style="font-size: 24rpx; margin-top: 8rpx;">Supports English & 中文</text>
+    <text class="empty-icon">🃏</text>
+    <text class="empty-title">搜索{{currentGame === 'fab' ? 'FAB' : 'MTG'}}卡牌</text>
+    <text class="empty-sub">支持中文名称 / 英文名称</text>
   </view>
+
 </view>

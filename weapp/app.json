@@ -8,23 +8,23 @@
     "pages/create-post/create-post"
   ],
   "window": {
-    "navigationBarBackgroundColor": "#1a1a2e",
+    "navigationBarBackgroundColor": "#f7f4f0",
     "navigationBarTitleText": "PlanarBridge",
-    "navigationBarTextStyle": "white",
-    "backgroundColor": "#0f0f1a",
-    "backgroundTextStyle": "light"
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f7f4f0",
+    "backgroundTextStyle": "dark"
   },
   "tabBar": {
     "custom": true,
-    "color": "#8a8a9a",
-    "selectedColor": "#c9a96e",
-    "backgroundColor": "#1a1a2e",
-    "borderStyle": "black",
+    "color": "#8a7a5a",
+    "selectedColor": "#8b6914",
+    "backgroundColor": "#f7f4f0",
+    "borderStyle": "white",
     "list": [
-      { "pagePath": "pages/home/home", "text": "Discover" },
-      { "pagePath": "pages/library/library", "text": "Library" },
-      { "pagePath": "pages/community/community", "text": "Community" },
-      { "pagePath": "pages/me/me", "text": "Profile" }
+      { "pagePath": "pages/home/home", "text": "发现" },
+      { "pagePath": "pages/library/library", "text": "卡库" },
+      { "pagePath": "pages/community/community", "text": "社区" },
+      { "pagePath": "pages/me/me", "text": "我的" }
     ]
   },
   "style": "v2",

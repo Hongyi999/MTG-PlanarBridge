@@ -1,126 +1,141 @@
 <view class="page-home">
-  <!-- Header Banner -->
-  <view class="hero-banner">
-    <view class="hero-title">PlanarBridge</view>
-    <view class="hero-subtitle">MTG & FAB Card Price Tracker</view>
+
+  <!-- ===== 顶部标题栏 ===== -->
+  <view class="page-header">
+    <text class="page-title">发现</text>
   </view>
 
-  <!-- Search Bar -->
-  <view class="container">
+  <!-- ===== 搜索框 ===== -->
+  <view class="px-container">
     <view class="search-bar">
-      <text class="search-icon">⌕</text>
+      <text class="search-icon">🔍</text>
       <input
+        class="search-input"
         type="text"
-        placeholder="Search cards (EN / 中文)"
-        placeholder-style="color: #5a5a6a"
+        placeholder="搜索卡牌、系列或规则..."
+        placeholder-style="color: #8a7a5a; font-size: 28rpx;"
         value="{{searchQuery}}"
         bindinput="onSearchInput"
         bindconfirm="onSearch"
         confirm-type="search"
       />
     </view>
+  </view>
 
-    <!-- Format Quick Tags -->
-    <view class="tag-row">
+  <!-- ===== 快速入口 ===== -->
+  <view class="quick-actions px-container">
+    <view class="action-card" bindtap="goPriceLists">
+      <view class="action-icon-box action-icon-primary">
+        <text style="font-size: 36rpx;">📋</text>
+      </view>
+      <view style="flex: 1;">
+        <text class="action-title">价格列表</text>
+        <text class="action-desc">管理与导出</text>
+      </view>
+      <text style="color: #8a7a5a; font-size: 32rpx;">›</text>
+    </view>
+    <view class="action-card" bindtap="goHistory">
+      <view class="action-icon-box action-icon-orange">
+        <text style="font-size: 36rpx;">🕐</text>
+      </view>
+      <view style="flex: 1;">
+        <text class="action-title">浏览足迹</text>
+        <text class="action-desc">查询历史</text>
+      </view>
+      <text style="color: #8a7a5a; font-size: 32rpx;">›</text>
+    </view>
+  </view>
+
+  <!-- ===== 市场动向 ===== -->
+  <view class="section px-container">
+    <view class="section-header">
+      <text style="font-size: 32rpx; margin-right: 8rpx;">📈</text>
+      <text class="section-title">市场动向 (CN)</text>
+    </view>
+
+    <view wx:if="{{hotLoading}}" class="loading-container">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <view wx:elif="{{hotCards.length === 0}}" class="empty-state" style="padding: 48rpx 0;">
+      <text class="empty-icon">📊</text>
+      <text class="empty-text">暂无数据，下拉刷新重试</text>
+    </view>
+
+    <view wx:else>
       <view
-        wx:for="{{formatTags}}"
-        wx:key="name"
-        class="format-tag"
-        data-query="{{item.query}}"
-        bindtap="onTagTap"
+        wx:for="{{hotCards}}"
+        wx:key="id"
+        class="market-row"
+        data-id="{{item.id}}"
+        bindtap="onCardTap"
       >
-        {{item.name}}
+        <image class="market-avatar" src="{{item.image}}" mode="aspectFill" lazy-load />
+        <view class="market-info">
+          <text class="market-name-cn">{{item.nameCn || item.nameEn}}</text>
+          <text class="market-name-en">{{item.nameEn}}</text>
+        </view>
+        <view class="market-price-col">
+          <text class="market-price-cny">{{item.priceCny ? '¥' + item.priceCny : '--'}}</text>
+          <text class="market-price-usd">{{item.priceUsd ? '$' + item.priceUsd : ''}}</text>
+        </view>
       </view>
     </view>
   </view>
 
-  <!-- Loading -->
-  <view wx:if="{{loading}}" class="loading-container">
-    <view class="loading-text">Loading...</view>
-  </view>
-
-  <!-- Trending Cards -->
-  <view wx:if="{{!loading && trendingCards.length > 0}}" class="container">
-    <view class="section-header">
-      <text class="section-title">◆ Trending Cards</text>
+  <!-- ===== 社区热门 ===== -->
+  <view class="section">
+    <view class="section-header px-container">
+      <text style="font-size: 32rpx; margin-right: 8rpx;">🔥</text>
+      <text class="section-title">社区热门</text>
     </view>
 
-    <scroll-view scroll-x class="card-scroll">
-      <view class="card-scroll-inner">
+    <view wx:if="{{recentLoading}}" class="loading-container">
+      <view class="loading-spinner"></view>
+    </view>
+
+    <scroll-view wx:else scroll-x class="card-h-scroll" show-scrollbar="{{false}}">
+      <view class="card-h-inner">
         <view
-          wx:for="{{trendingCards}}"
+          wx:for="{{recentCards}}"
           wx:key="id"
-          class="trending-card"
-          data-card="{{item}}"
+          class="h-card"
+          data-id="{{item.id}}"
           bindtap="onCardTap"
         >
-          <image
-            class="trending-card-image"
-            src="{{item.image}}"
-            mode="aspectFit"
-            lazy-load
-          />
-          <view class="trending-card-info">
-            <text class="trending-card-name">{{item.nameCn || item.name}}</text>
-            <view class="trending-card-price" wx:if="{{item.priceCny}}">
-              <text class="text-gold">¥{{item.priceCny}}</text>
-              <text class="text-muted" style="margin-left: 8rpx; font-size: 22rpx;">${{item.priceUsd}}</text>
-            </view>
-            <view class="trending-card-price" wx:else>
-              <text class="text-muted">Price N/A</text>
-            </view>
+          <image class="h-card-image" src="{{item.image}}" mode="aspectFill" lazy-load />
+          <view class="h-card-info">
+            <text class="h-card-name">{{item.nameCn || item.nameEn}}</text>
+            <text class="h-card-price">{{item.priceCny ? '¥' + item.priceCny : '--'}}</text>
           </view>
+        </view>
+        <view wx:if="{{recentCards.length === 0}}" class="h-card-empty">
+          <text style="color: #8a7a5a; font-size: 24rpx;">暂无数据</text>
         </view>
       </view>
     </scroll-view>
   </view>
 
-  <!-- Recent Community Posts -->
-  <view wx:if="{{!loading && recentPosts.length > 0}}" class="container">
+  <!-- ===== 赛制快速入口 ===== -->
+  <view class="section px-container">
     <view class="section-header">
-      <text class="section-title">◆ Community</text>
-      <text class="section-subtitle" bindtap="goToCommunity">View all →</text>
+      <text style="font-size: 32rpx; margin-right: 8rpx;">⚡</text>
+      <text class="section-title">快速赛制</text>
     </view>
-
-    <view
-      wx:for="{{recentPosts}}"
-      wx:key="id"
-      class="post-card"
-      data-post="{{item}}"
-      bindtap="onPostTap"
-    >
-      <view class="post-header">
-        <image
-          class="avatar-small"
-          src="{{item.authorAvatar}}"
-          wx:if="{{item.authorAvatar}}"
-        />
-        <view wx:else class="avatar-small avatar-placeholder">
-          <text style="font-size: 24rpx;">◉</text>
-        </view>
-        <text class="post-author">{{item.authorName}}</text>
-        <text class="tag {{item.typeColorClass}}">{{item.typeLabel}}</text>
-        <text class="post-time">{{item.timeAgo}}</text>
-      </view>
-      <text class="post-content">{{item.content}}</text>
-      <view wx:if="{{item.cardName}}" class="post-card-ref">
-        <image
-          class="post-card-ref-image"
-          src="{{item.cardImage}}"
-          mode="aspectFit"
-          wx:if="{{item.cardImage}}"
-        />
-        <text class="post-card-ref-name">{{item.cardName}}</text>
-      </view>
-      <view class="post-footer">
-        <text class="post-likes">♡ {{item.likes}}</text>
+    <view class="format-grid">
+      <view
+        wx:for="{{formats}}"
+        wx:key="key"
+        class="format-cell"
+        data-query="{{item.query}}"
+        bindtap="onFormatTap"
+      >
+        <text class="format-cell-label">{{item.name}}</text>
       </view>
     </view>
   </view>
 
-  <!-- Empty State -->
-  <view wx:if="{{!loading && trendingCards.length === 0 && recentPosts.length === 0}}" class="empty-state">
-    <text class="empty-icon">◇</text>
-    <text class="empty-text">Could not load data. Pull down to refresh.</text>
-  </view>
+  <view style="height: 32rpx;"></view>
+
 </view>

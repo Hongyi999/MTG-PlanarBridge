@@ -16,7 +16,10 @@ App({
     },
 
     // Used to pass search query from Home to Library tab
-    pendingLibraryQuery: ''
+    pendingLibraryQuery: '',
+
+    // Game switcher: 'mtg' | 'fab'
+    currentGame: 'mtg'
   },
 
   onLaunch() {

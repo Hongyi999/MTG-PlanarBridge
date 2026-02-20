@@ -7,11 +7,11 @@ Page({
     loading: true,
     activeFilter: 'all',
     filterOptions: [
-      { key: 'all', label: 'All' },
-      { key: 'sell', label: 'Sell' },
-      { key: 'buy', label: 'Buy' },
-      { key: 'trade', label: 'Trade' },
-      { key: 'discussion', label: 'Discussion' }
+      { key: 'all',        label: '全部' },
+      { key: 'discussion', label: '讨论' },
+      { key: 'sell',       label: '出售' },
+      { key: 'buy',        label: '收购' },
+      { key: 'trade',      label: '交换' }
     ]
   },
 
@@ -23,7 +23,6 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 2 });
     }
-    // Reload posts when returning from create-post
     if (this._needRefresh) {
       this._needRefresh = false;
       this.loadPosts();
@@ -32,14 +31,13 @@ Page({
 
   async loadPosts() {
     this.setData({ loading: true });
-
     try {
       const posts = await api.get('/api/community-posts');
       const allPosts = (posts || []).map(function(post) {
         const typeInfo = util.getPostTypeInfo(post.type);
         return {
           id: post.id,
-          authorName: post.authorName || 'Anonymous',
+          authorName: post.authorName || '匿名用户',
           authorAvatar: post.authorAvatar || '',
           content: post.content || '',
           type: post.type || 'discussion',
@@ -56,11 +54,10 @@ Page({
           createdAt: post.createdAt
         };
       });
-
       this.setData({ posts: allPosts, loading: false });
     } catch (err) {
       console.error('[Community] Failed to load posts:', err);
-      wx.showToast({ title: 'Failed to load posts', icon: 'none' });
+      wx.showToast({ title: '加载失败，请重试', icon: 'none' });
       this.setData({ loading: false });
     }
   },
@@ -70,18 +67,10 @@ Page({
     this.setData({ activeFilter: key });
   },
 
-  getFilteredPosts() {
-    if (this.data.activeFilter === 'all') return this.data.posts;
-    return this.data.posts.filter(function(post) {
-      return post.type === this.data.activeFilter;
-    }.bind(this));
-  },
-
   async onLike(e) {
     const postId = e.currentTarget.dataset.id;
     try {
       await api.post('/api/community-posts/' + postId + '/like');
-      // Update local like count
       const posts = this.data.posts.map(function(post) {
         if (post.id === postId) {
           return Object.assign({}, post, { likes: post.likes + 1 });
@@ -90,7 +79,7 @@ Page({
       });
       this.setData({ posts: posts });
     } catch (err) {
-      wx.showToast({ title: 'Failed to like', icon: 'none' });
+      wx.showToast({ title: '操作失败', icon: 'none' });
     }
   },
 
@@ -103,9 +92,7 @@ Page({
   onCardRefTap(e) {
     const scryfallId = e.currentTarget.dataset.id;
     if (scryfallId) {
-      wx.navigateTo({
-        url: '/pages/card-detail/card-detail?scryfallId=' + scryfallId
-      });
+      wx.navigateTo({ url: '/pages/card-detail/card-detail?scryfallId=' + scryfallId });
     }
   },
 

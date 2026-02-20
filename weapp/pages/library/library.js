@@ -10,41 +10,55 @@ Page({
     currentPage: 1,
     totalCards: 0,
     searched: false,
+    currentGame: 'mtg', // 'mtg' | 'fab'
 
     // Filters
     showFilters: false,
+    hasActiveFilters: false,
     selectedColors: [],
     selectedRarity: '',
     selectedFormat: '',
+
     colorOptions: [
-      { code: 'W', name: 'White', color: '#f9faf4' },
-      { code: 'U', name: 'Blue', color: '#0e68ab' },
-      { code: 'B', name: 'Black', color: '#150b00' },
-      { code: 'R', name: 'Red', color: '#d3202a' },
-      { code: 'G', name: 'Green', color: '#00733e' }
+      { code: 'W', name: '白', color: '#f9f3e3', border: true },
+      { code: 'U', name: '蓝', color: '#1565c0' },
+      { code: 'B', name: '黑', color: '#3b3b3b' },
+      { code: 'R', name: '红', color: '#d32029' },
+      { code: 'G', name: '绿', color: '#1b5e20' }
     ],
-    rarityOptions: ['common', 'uncommon', 'rare', 'mythic'],
-    formatOptions: ['standard', 'modern', 'commander', 'pioneer', 'legacy', 'vintage', 'pauper']
+    rarityOptions: [
+      { key: 'common',   label: '普通' },
+      { key: 'uncommon', label: '非普' },
+      { key: 'rare',     label: '稀有' },
+      { key: 'mythic',   label: '秘稀' }
+    ],
+    formatOptions: [
+      { key: 'standard',  label: '标准' },
+      { key: 'modern',    label: '现代' },
+      { key: 'commander', label: '统帅' },
+      { key: 'pioneer',   label: '先驱' },
+      { key: 'legacy',    label: '薪传' },
+      { key: 'vintage',   label: '特选' },
+      { key: 'pauper',    label: '平民' }
+    ]
   },
 
   onLoad() {
-    // Check if there's a pending query from Home page
+    // Load game from globalData
     const app = getApp();
-    if (app.globalData.pendingLibraryQuery) {
-      const query = app.globalData.pendingLibraryQuery;
-      app.globalData.pendingLibraryQuery = '';
-      this.setData({ searchQuery: query });
-      this.doSearch();
-    }
+    const game = app.globalData.currentGame || 'mtg';
+    this.setData({ currentGame: game });
+    this._checkPendingQuery();
   },
 
   onShow() {
-    // Set tab bar selection
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 });
     }
+    this._checkPendingQuery();
+  },
 
-    // Check for pending query (from Home page tag/search)
+  _checkPendingQuery() {
     const app = getApp();
     if (app.globalData.pendingLibraryQuery) {
       const query = app.globalData.pendingLibraryQuery;
@@ -58,6 +72,10 @@ Page({
     this.setData({ searchQuery: e.detail.value });
   },
 
+  clearSearch() {
+    this.setData({ searchQuery: '', cards: [], searched: false, hasMore: false, totalCards: 0 });
+  },
+
   onSearch() {
     this.setData({ cards: [], currentPage: 1 });
     this.doSearch();
@@ -66,69 +84,81 @@ Page({
   async doSearch() {
     const query = this.data.searchQuery.trim();
     if (!query) {
-      wx.showToast({ title: 'Enter a card name', icon: 'none' });
+      wx.showToast({ title: '请输入搜索词', icon: 'none' });
       return;
     }
-
     this.setData({ loading: true, searched: true });
 
     try {
-      // Build search query with filters
-      let searchQuery = query;
-
-      // Add color filter
-      if (this.data.selectedColors.length > 0) {
-        searchQuery += ' ' + this.data.selectedColors.map(function(c) { return 'color:' + c; }).join(' ');
+      if (this.data.currentGame === 'fab') {
+        await this.doFabSearch(query);
+      } else {
+        await this.doMtgSearch(query);
       }
-
-      // Add rarity filter
-      if (this.data.selectedRarity) {
-        searchQuery += ' rarity:' + this.data.selectedRarity;
-      }
-
-      // Add format filter
-      if (this.data.selectedFormat) {
-        searchQuery += ' f:' + this.data.selectedFormat;
-      }
-
-      const res = await api.get('/api/cards/search', {
-        q: searchQuery,
-        page: this.data.currentPage
-      });
-
-      const rawCards = (res && res.data) || [];
-      const newCards = rawCards.map(function(card) {
-        return {
-          id: card.id,
-          name: card.name,
-          nameCn: card.printed_name || '',
-          image: util.getCardImage(card, 'normal'),
-          imageSmall: util.getCardImage(card, 'small'),
-          priceUsd: card.prices ? card.prices.usd : null,
-          priceCny: util.usdToCny(card.prices ? card.prices.usd : null),
-          rarity: card.rarity,
-          rarityColor: util.getRarityColor(card.rarity),
-          rarityName: util.getRarityName(card.rarity),
-          setName: card.set_name || '',
-          setCode: card.set || '',
-          typeLine: card.type_line || '',
-          manaCost: card.mana_cost || ''
-        };
-      });
-
-      const allCards = this.data.currentPage === 1 ? newCards : this.data.cards.concat(newCards);
-
-      this.setData({
-        cards: allCards,
-        hasMore: res.has_more || false,
-        totalCards: res.total_cards || allCards.length,
-        loading: false
-      });
     } catch (err) {
-      console.error('[Library] Search failed:', err);
-      wx.showToast({ title: 'Search failed', icon: 'none' });
+      console.error('[Library] Search error:', err);
+      wx.showToast({ title: '搜索失败，请重试', icon: 'none' });
       this.setData({ loading: false });
     }
+  },
+
+  async doMtgSearch(query) {
+    let q = query;
+    if (this.data.selectedColors.length > 0) {
+      q += ' ' + this.data.selectedColors.map(function(c) { return 'color:' + c; }).join(' ');
+    }
+    if (this.data.selectedRarity) q += ' rarity:' + this.data.selectedRarity;
+    if (this.data.selectedFormat) q += ' f:' + this.data.selectedFormat;
+
+    const res = await api.get('/api/cards/search', { q: q, page: this.data.currentPage });
+    const raw = (res && (res.cards || res.data)) || [];
+    const newCards = raw.map(function(card) {
+      return {
+        id: util.getCardId(card),
+        nameCn: util.getCardName(card),
+        nameEn: util.getCardNameEn(card),
+        image: util.getCardImage(card, 'normal'),
+        priceCny: util.getCardPriceCny(card),
+        priceUsd: util.getCardPriceUsd(card),
+        rarity: card.rarity || '',
+        rarityColor: util.getRarityColor(card.rarity),
+        rarityName: util.getRarityName(card.rarity),
+        setCode: (card.set_code || card.set || '').toUpperCase()
+      };
+    });
+    const allCards = this.data.currentPage === 1 ? newCards : this.data.cards.concat(newCards);
+    this.setData({
+      cards: allCards,
+      hasMore: !!(res && res.has_more),
+      totalCards: (res && res.total_cards) || allCards.length,
+      loading: false
+    });
+  },
+
+  async doFabSearch(query) {
+    const res = await api.get('/api/fab/cards/search', { q: query, page: this.data.currentPage });
+    const raw = (res && (res.cards || res.data)) || [];
+    const newCards = raw.map(function(card) {
+      return {
+        id: card.id || card.identifier || '',
+        nameCn: card.name || '',
+        nameEn: card.name || '',
+        image: card.image_url || card.image || '',
+        priceCny: null,
+        priceUsd: card.tcgplayer_price || null,
+        rarity: card.rarity || '',
+        rarityColor: util.getRarityColor(card.rarity),
+        rarityName: card.rarity || '',
+        setCode: (card.set_identifier || card.set || '').toUpperCase()
+      };
+    });
+    const allCards = this.data.currentPage === 1 ? newCards : this.data.cards.concat(newCards);
+    this.setData({
+      cards: allCards,
+      hasMore: !!(res && res.has_more),
+      totalCards: (res && res.total_cards) || allCards.length,
+      loading: false
+    });
   },
 
   loadMore() {
@@ -138,13 +168,26 @@ Page({
   },
 
   onCardTap(e) {
-    const card = e.currentTarget.dataset.card;
-    wx.navigateTo({
-      url: '/pages/card-detail/card-detail?scryfallId=' + card.id
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    if (this.data.currentGame === 'fab') {
+      wx.navigateTo({ url: '/pages/card-detail/card-detail?scryfallId=' + id + '&game=fab' });
+    } else {
+      wx.navigateTo({ url: '/pages/card-detail/card-detail?scryfallId=' + id });
+    }
+  },
+
+  toggleGame() {
+    const newGame = this.data.currentGame === 'mtg' ? 'fab' : 'mtg';
+    getApp().globalData.currentGame = newGame;
+    this.setData({
+      currentGame: newGame,
+      cards: [], searched: false, searchQuery: '',
+      hasMore: false, totalCards: 0, currentPage: 1,
+      showFilters: false
     });
   },
 
-  // Filter controls
   toggleFilters() {
     this.setData({ showFilters: !this.data.showFilters });
   },
@@ -153,33 +196,28 @@ Page({
     const code = e.currentTarget.dataset.code;
     const colors = this.data.selectedColors.slice();
     const idx = colors.indexOf(code);
-    if (idx >= 0) {
-      colors.splice(idx, 1);
-    } else {
-      colors.push(code);
-    }
-    this.setData({ selectedColors: colors });
+    if (idx >= 0) colors.splice(idx, 1);
+    else colors.push(code);
+    this.setData({ selectedColors: colors, hasActiveFilters: this._checkActive(colors, this.data.selectedRarity, this.data.selectedFormat) });
   },
 
   selectRarity(e) {
     const rarity = e.currentTarget.dataset.rarity;
-    this.setData({
-      selectedRarity: this.data.selectedRarity === rarity ? '' : rarity
-    });
+    const val = this.data.selectedRarity === rarity ? '' : rarity;
+    this.setData({ selectedRarity: val, hasActiveFilters: this._checkActive(this.data.selectedColors, val, this.data.selectedFormat) });
   },
 
   selectFormat(e) {
     const format = e.currentTarget.dataset.format;
-    this.setData({
-      selectedFormat: this.data.selectedFormat === format ? '' : format
-    });
+    const val = this.data.selectedFormat === format ? '' : format;
+    this.setData({ selectedFormat: val, hasActiveFilters: this._checkActive(this.data.selectedColors, this.data.selectedRarity, val) });
   },
 
   clearFilters() {
-    this.setData({
-      selectedColors: [],
-      selectedRarity: '',
-      selectedFormat: ''
-    });
+    this.setData({ selectedColors: [], selectedRarity: '', selectedFormat: '', hasActiveFilters: false });
+  },
+
+  _checkActive(colors, rarity, format) {
+    return (colors && colors.length > 0) || !!rarity || !!format;
   }
 });

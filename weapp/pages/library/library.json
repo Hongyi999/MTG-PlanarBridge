@@ -1,5 +1,7 @@
 {
-  "navigationBarTitleText": "Card Library",
+  "navigationBarTitleText": "",
+  "navigationBarBackgroundColor": "#f7f4f0",
+  "navigationBarTextStyle": "black",
   "enablePullDownRefresh": false,
-  "backgroundColor": "#0f0f1a"
+  "backgroundColor": "#f7f4f0"
 }

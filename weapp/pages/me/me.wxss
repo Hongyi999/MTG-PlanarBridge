@@ -1,13 +1,40 @@
-/* Profile (Me) Page Styles */
+/* ======================================
+   Profile Page — 我的 (Light Theme)
+   ====================================== */
 
-.profile-header {
-  background: linear-gradient(135deg, #1a1a2e 0%, #252540 50%, #1a1a2e 100%);
-  padding: 48rpx 32rpx;
-  border-bottom: 1rpx solid rgba(201, 169, 110, 0.15);
+.page-me {
+  background-color: #f7f4f0;
+  min-height: 100vh;
+  padding-bottom: 60rpx;
 }
 
-.profile-info,
-.profile-login-prompt {
+.px-container { padding: 0 32rpx; }
+
+/* ---- Header ---- */
+.me-header {
+  padding: 48rpx 32rpx 20rpx;
+}
+
+.page-title {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #1a1a0a;
+}
+
+/* ---- Profile Card ---- */
+.profile-card {
+  margin-bottom: 28rpx;
+}
+
+.profile-inner {
+  background: #ffffff;
+  border-radius: 20rpx 20rpx 0 0;
+  padding: 28rpx;
+  border: 1rpx solid #e8e0d4;
+  border-bottom: none;
+}
+
+.profile-row {
   display: flex;
   align-items: center;
 }
@@ -16,11 +43,12 @@
   width: 120rpx;
   height: 120rpx;
   border-radius: 50%;
-  background-color: #252540;
-  border: 3rpx solid rgba(201, 169, 110, 0.3);
+  flex-shrink: 0;
+  background-color: #ede8e0;
+  border: 3rpx solid rgba(139, 105, 20, 0.2);
 }
 
-.profile-avatar-placeholder {
+.avatar-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -33,34 +61,36 @@
 
 .profile-name {
   font-size: 36rpx;
-  font-weight: 600;
-  color: #e0d8c8;
+  font-weight: 700;
+  color: #1a1a0a;
   display: block;
 }
 
-.profile-id {
+.profile-phone {
   font-size: 24rpx;
-  color: #8a8a9a;
+  color: #8a7a5a;
   display: block;
-  margin-top: 4rpx;
+  margin-top: 6rpx;
 }
 
 .profile-login-link {
   font-size: 28rpx;
-  color: #c9a96e;
+  color: #8b6914;
   display: block;
   margin-top: 8rpx;
+  font-weight: 500;
 }
 
-/* Stats Bar */
-.stats-bar {
+/* ---- Stats Row ---- */
+.stats-row {
   display: flex;
   align-items: center;
-  background-color: #1a1a2e;
+  background: #ffffff;
+  border-radius: 0 0 20rpx 20rpx;
   padding: 24rpx 0;
-  margin: 24rpx 32rpx;
-  border-radius: 16rpx;
-  border: 1rpx solid rgba(201, 169, 110, 0.1);
+  border: 1rpx solid #e8e0d4;
+  border-top: 1rpx solid #f0ebe3;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .stat-item {
@@ -71,29 +101,30 @@
 }
 
 .stat-number {
-  font-size: 36rpx;
+  font-size: 40rpx;
   font-weight: 700;
-  color: #c9a96e;
+  color: #8b6914;
 }
 
 .stat-label {
   font-size: 22rpx;
-  color: #8a8a9a;
-  margin-top: 4rpx;
+  color: #8a7a5a;
+  margin-top: 6rpx;
 }
 
 .stat-divider {
   width: 1rpx;
   height: 48rpx;
-  background: rgba(201, 169, 110, 0.15);
+  background: #e8e0d4;
 }
 
-/* Menu */
+/* ---- Menu ---- */
 .menu-section {
-  background-color: #1a1a2e;
-  border-radius: 16rpx;
+  background: #ffffff;
+  border-radius: 20rpx;
   overflow: hidden;
-  border: 1rpx solid rgba(201, 169, 110, 0.1);
+  border: 1rpx solid #e8e0d4;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
   margin-bottom: 24rpx;
 }
 
@@ -101,7 +132,7 @@
   display: flex;
   align-items: center;
   padding: 28rpx 24rpx;
-  border-bottom: 1rpx solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1rpx solid #f0ebe3;
 }
 
 .menu-item:last-child {
@@ -109,14 +140,14 @@
 }
 
 .menu-item:active {
-  background-color: #252540;
+  background-color: #f7f4f0;
 }
 
 .menu-icon {
   font-size: 36rpx;
   width: 56rpx;
   text-align: center;
-  color: #c9a96e;
+  color: #8b6914;
 }
 
 .menu-info {
@@ -125,37 +156,54 @@
 }
 
 .menu-label {
-  font-size: 28rpx;
-  color: #e0d8c8;
+  font-size: 30rpx;
+  color: #1a1a0a;
+  font-weight: 500;
   display: block;
 }
 
 .menu-desc {
   font-size: 22rpx;
-  color: #5a5a6a;
+  color: #8a7a5a;
   display: block;
   margin-top: 4rpx;
 }
 
 .menu-arrow {
-  font-size: 32rpx;
-  color: #5a5a6a;
+  font-size: 36rpx;
+  color: #c0b8a0;
 }
 
-/* Logout */
-.logout-section {
-  margin-bottom: 32rpx;
+/* ---- Logout ---- */
+.logout-wrap {
+  margin-bottom: 24rpx;
 }
 
-/* About */
+.logout-btn {
+  background: #ffffff;
+  border: 1rpx solid #e8e0d4;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  text-align: center;
+  font-size: 30rpx;
+  color: #d32029;
+  font-weight: 500;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.logout-btn:active {
+  background-color: #fff5f5;
+}
+
+/* ---- About ---- */
 .about-section {
   text-align: center;
-  padding: 32rpx 0 60rpx;
+  padding: 24rpx 0 40rpx;
 }
 
 .about-text {
   font-size: 22rpx;
-  color: #5a5a6a;
+  color: #a89a7a;
   display: block;
   line-height: 1.8;
 }

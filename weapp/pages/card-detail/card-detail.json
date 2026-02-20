@@ -1,4 +1,6 @@
 {
-  "navigationBarTitleText": "Card Detail",
-  "backgroundColor": "#0f0f1a"
+  "navigationBarTitleText": "",
+  "navigationBarBackgroundColor": "#f7f4f0",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#f7f4f0"
 }

@@ -4,83 +4,77 @@ const util = require('../../utils/util');
 Page({
   data: {
     searchQuery: '',
-    trendingCards: [],
-    recentPosts: [],
-    loading: true,
-    formatTags: [
-      { name: 'Standard', query: 'f:standard' },
-      { name: 'Modern', query: 'f:modern' },
+    hotCards: [],
+    recentCards: [],
+    hotLoading: true,
+    recentLoading: true,
+    formats: [
+      { name: 'Standard',  query: 'f:standard' },
+      { name: 'Modern',    query: 'f:modern' },
       { name: 'Commander', query: 'f:commander' },
-      { name: 'Pioneer', query: 'f:pioneer' },
-      { name: 'Legacy', query: 'f:legacy' }
+      { name: 'Pioneer',   query: 'f:pioneer' },
+      { name: 'Legacy',    query: 'f:legacy' },
+      { name: 'Vintage',   query: 'f:vintage' }
     ]
   },
 
   onLoad() {
-    this.loadData();
+    this.loadHotCards();
+    this.loadRecentCards();
   },
 
   onShow() {
-    // Set tab bar selection
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 0 });
     }
   },
 
-  async loadData() {
-    this.setData({ loading: true });
-
+  // 市场动向：标准赛制秘稀牌前3张
+  async loadHotCards() {
+    this.setData({ hotLoading: true });
     try {
-      // Load trending cards (Standard format popular cards)
-      const cardsRes = await api.get('/api/cards/search', { q: 'f:standard', page: 1 });
-      const rawCards = (cardsRes && cardsRes.data) || [];
-      const trendingCards = rawCards.slice(0, 8).map(function(card) {
+      const res = await api.get('/api/cards/search', { q: 'f:standard rarity:mythic', page: 1 });
+      const raw = (res && (res.cards || res.data)) || [];
+      const hotCards = raw.slice(0, 3).map(function(card) {
         return {
-          id: card.id,
-          name: card.name,
-          nameCn: card.printed_name || '',
+          id: util.getCardId(card),
+          nameCn: util.getCardName(card),
+          nameEn: util.getCardNameEn(card),
+          image: util.getCardImage(card, 'small'),
+          priceCny: util.getCardPriceCny(card),
+          priceUsd: util.getCardPriceUsd(card)
+        };
+      });
+      this.setData({ hotCards: hotCards });
+    } catch (err) {
+      console.error('[Home] hotCards error:', err);
+      this.setData({ hotCards: [] });
+    }
+    this.setData({ hotLoading: false });
+  },
+
+  // 社区热门：现代赛制稀有牌横向滚动
+  async loadRecentCards() {
+    this.setData({ recentLoading: true });
+    try {
+      const res = await api.get('/api/cards/search', { q: 'f:modern rarity:rare', page: 1 });
+      const raw = (res && (res.cards || res.data)) || [];
+      const recentCards = raw.slice(0, 8).map(function(card) {
+        return {
+          id: util.getCardId(card),
+          nameCn: util.getCardName(card),
+          nameEn: util.getCardNameEn(card),
           image: util.getCardImage(card, 'normal'),
-          imageSmall: util.getCardImage(card, 'small'),
-          priceUsd: card.prices ? card.prices.usd : null,
-          priceCny: util.usdToCny(card.prices ? card.prices.usd : null),
-          rarity: card.rarity,
-          rarityColor: util.getRarityColor(card.rarity),
-          setName: card.set_name || ''
+          priceCny: util.getCardPriceCny(card),
+          priceUsd: util.getCardPriceUsd(card)
         };
       });
-
-      this.setData({ trendingCards: trendingCards });
+      this.setData({ recentCards: recentCards });
     } catch (err) {
-      console.error('[Home] Failed to load trending cards:', err);
+      console.error('[Home] recentCards error:', err);
+      this.setData({ recentCards: [] });
     }
-
-    try {
-      // Load recent community posts
-      const posts = await api.get('/api/community-posts');
-      const recentPosts = (posts || []).slice(0, 5).map(function(post) {
-        const typeInfo = util.getPostTypeInfo(post.type);
-        return {
-          id: post.id,
-          authorName: post.authorName || 'Anonymous',
-          authorAvatar: post.authorAvatar || '',
-          content: util.truncate(post.content, 80),
-          type: post.type,
-          typeLabel: typeInfo.label,
-          typeColorClass: typeInfo.colorClass,
-          images: post.images || [],
-          cardName: post.cardName || '',
-          cardImage: post.cardImage || '',
-          likes: post.likes || 0,
-          timeAgo: util.timeAgo(post.createdAt)
-        };
-      });
-
-      this.setData({ recentPosts: recentPosts });
-    } catch (err) {
-      console.error('[Home] Failed to load posts:', err);
-    }
-
-    this.setData({ loading: false });
+    this.setData({ recentLoading: false });
   },
 
   onSearchInput(e) {
@@ -90,36 +84,34 @@ Page({
   onSearch() {
     const query = this.data.searchQuery.trim();
     if (!query) return;
-    // Pass query to Library page via globalData, then switch tab
     getApp().globalData.pendingLibraryQuery = query;
     wx.switchTab({ url: '/pages/library/library' });
   },
 
-  onTagTap(e) {
+  onFormatTap(e) {
     const query = e.currentTarget.dataset.query;
     getApp().globalData.pendingLibraryQuery = query;
     wx.switchTab({ url: '/pages/library/library' });
   },
 
   onCardTap(e) {
-    const card = e.currentTarget.dataset.card;
-    wx.navigateTo({
-      url: '/pages/card-detail/card-detail?scryfallId=' + card.id
-    });
-  },
-
-  onPostTap(e) {
-    // Could navigate to post detail in the future
-    const post = e.currentTarget.dataset.post;
-    if (post.cardName) {
-      // If post has a linked card, navigate to community tab
-      wx.switchTab({ url: '/pages/community/community' });
+    const id = e.currentTarget.dataset.id;
+    if (id) {
+      wx.navigateTo({ url: '/pages/card-detail/card-detail?scryfallId=' + id });
     }
   },
 
+  goPriceLists() {
+    wx.showToast({ title: '价格列表 — 即将上线', icon: 'none' });
+  },
+
+  goHistory() {
+    wx.showToast({ title: '浏览足迹 — 即将上线', icon: 'none' });
+  },
+
   onPullDownRefresh() {
-    this.loadData().then(function() {
-      wx.stopPullDownRefresh();
-    });
+    this.loadHotCards();
+    this.loadRecentCards();
+    setTimeout(function() { wx.stopPullDownRefresh(); }, 1500);
   }
 });

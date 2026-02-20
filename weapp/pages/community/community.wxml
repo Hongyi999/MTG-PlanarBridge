@@ -1,5 +1,11 @@
 <view class="page-community">
-  <!-- Filter Tabs -->
+
+  <!-- ===== 顶部标题 ===== -->
+  <view class="comm-header px-container">
+    <text class="page-title">社区</text>
+  </view>
+
+  <!-- ===== 标签筛选 ===== -->
   <view class="filter-bar">
     <scroll-view scroll-x class="filter-scroll">
       <view
@@ -14,36 +20,41 @@
     </scroll-view>
   </view>
 
-  <!-- Loading -->
-  <view wx:if="{{loading}}" class="loading-container">
-    <view class="loading-text">Loading posts...</view>
+  <!-- ===== 加载中 ===== -->
+  <view wx:if="{{loading}}" class="loading-center">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
   </view>
 
-  <!-- Posts List -->
-  <view wx:if="{{!loading}}" class="container posts-list">
+  <!-- ===== 帖子列表 ===== -->
+  <view wx:if="{{!loading}}" class="posts-list px-container">
     <block wx:for="{{posts}}" wx:key="id">
-      <view wx:if="{{activeFilter === 'all' || item.type === activeFilter}}" class="community-post">
-        <!-- Post Header -->
+      <view
+        wx:if="{{activeFilter === 'all' || item.type === activeFilter}}"
+        class="community-post"
+      >
+        <!-- 帖子头部 -->
         <view class="post-header">
           <image
             class="avatar-small"
             src="{{item.authorAvatar}}"
             wx:if="{{item.authorAvatar}}"
+            mode="aspectFill"
           />
           <view wx:else class="avatar-small avatar-placeholder">
-            <text style="font-size: 24rpx; color: #c9a96e;">◉</text>
+            <text style="font-size: 28rpx; color: #8b6914;">◉</text>
           </view>
           <view class="post-header-info">
             <text class="post-author-name">{{item.authorName}}</text>
             <text class="post-time-text">{{item.timeAgo}}</text>
           </view>
-          <text class="tag {{item.typeColorClass}}">{{item.typeLabel}}</text>
+          <text class="type-tag tag-{{item.type}}">{{item.typeLabel}}</text>
         </view>
 
-        <!-- Post Content -->
+        <!-- 帖子正文 -->
         <text class="post-body">{{item.content}}</text>
 
-        <!-- Post Images -->
+        <!-- 帖子图片 -->
         <view wx:if="{{item.images.length > 0}}" class="post-images">
           <image
             wx:for="{{item.images}}"
@@ -59,7 +70,7 @@
           />
         </view>
 
-        <!-- Linked Card -->
+        <!-- 关联卡牌 -->
         <view
           wx:if="{{item.cardName}}"
           class="post-linked-card"
@@ -74,12 +85,12 @@
           />
           <view class="linked-card-info">
             <text class="linked-card-name">{{item.cardName}}</text>
-            <text wx:if="{{item.price}}" class="linked-card-price">${{item.price}}</text>
+            <text wx:if="{{item.price}}" class="linked-card-price">¥{{item.price}}</text>
           </view>
-          <text class="text-muted" style="font-size: 22rpx;">→</text>
+          <text style="font-size: 24rpx; color: #8a7a5a;">→</text>
         </view>
 
-        <!-- Post Footer -->
+        <!-- 帖子操作 -->
         <view class="post-actions">
           <view class="post-action" data-id="{{item.id}}" bindtap="onLike">
             <text class="action-icon">♡</text>
@@ -94,14 +105,16 @@
     </block>
   </view>
 
-  <!-- Empty State -->
+  <!-- ===== 空状态 ===== -->
   <view wx:if="{{!loading && posts.length === 0}}" class="empty-state">
-    <text class="empty-icon">◈</text>
-    <text class="empty-text">No posts yet. Be the first!</text>
+    <text class="empty-icon">📋</text>
+    <text class="empty-title">暂无帖子</text>
+    <text class="empty-sub">来发第一条吧！</text>
   </view>
 
-  <!-- FAB - Create Post -->
+  <!-- ===== 发帖按钮 ===== -->
   <view class="fab-button" bindtap="goCreatePost">
-    <text class="fab-icon">+</text>
+    <text class="fab-icon">✏</text>
   </view>
+
 </view>

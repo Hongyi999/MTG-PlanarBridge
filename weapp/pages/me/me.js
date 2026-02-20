@@ -5,17 +5,15 @@ Page({
     isLoggedIn: false,
     userInfo: null,
 
-    // Stats
     followedCount: 0,
     priceListCount: 0,
     historyCount: 0,
 
-    // Menu items
     menuItems: [
-      { key: 'followed', icon: '★', label: 'Followed Cards', desc: 'Track prices of your favorite cards' },
-      { key: 'priceLists', icon: '≡', label: 'Price Lists', desc: 'Manage wishlists and sell lists' },
-      { key: 'history', icon: '◷', label: 'View History', desc: 'Recently viewed cards' },
-      { key: 'settings', icon: '⚙', label: 'Settings', desc: 'Exchange rates & preferences' }
+      { key: 'followed',   icon: '★', label: '关注的卡牌', desc: '追踪你喜爱卡牌的价格变动' },
+      { key: 'priceLists', icon: '≡', label: '价格列表',   desc: '管理心愿单和出售列表' },
+      { key: 'history',    icon: '◷', label: '浏览足迹',   desc: '最近查看过的卡牌' },
+      { key: 'settings',   icon: '⚙', label: '设置',       desc: '汇率偏好等配置' }
     ]
   },
 
@@ -33,21 +31,15 @@ Page({
   checkLogin() {
     const app = getApp();
     if (app.globalData.userInfo) {
-      this.setData({
-        isLoggedIn: true,
-        userInfo: app.globalData.userInfo
-      });
+      this.setData({ isLoggedIn: true, userInfo: app.globalData.userInfo });
     } else {
-      // Try to check session with backend
       api.get('/api/auth/me').then(function(user) {
         if (user && user.id) {
           app.globalData.userInfo = user;
           wx.setStorageSync('userInfo', user);
           this.setData({ isLoggedIn: true, userInfo: user });
         }
-      }.bind(this)).catch(function() {
-        // Not logged in
-      });
+      }.bind(this)).catch(function() {});
     }
   },
 
@@ -58,7 +50,6 @@ Page({
         api.get('/api/price-lists').catch(function() { return []; }),
         api.get('/api/card-history').catch(function() { return []; })
       ]);
-
       this.setData({
         followedCount: (followed || []).length,
         priceListCount: (priceLists || []).length,
@@ -73,16 +64,16 @@ Page({
     const key = e.currentTarget.dataset.key;
     switch (key) {
       case 'followed':
-        wx.showToast({ title: 'Coming soon', icon: 'none' });
+        wx.showToast({ title: '关注功能即将上线', icon: 'none' });
         break;
       case 'priceLists':
-        wx.showToast({ title: 'Coming soon', icon: 'none' });
+        wx.showToast({ title: '价格列表即将上线', icon: 'none' });
         break;
       case 'history':
-        wx.showToast({ title: 'Coming soon', icon: 'none' });
+        wx.showToast({ title: '浏览足迹即将上线', icon: 'none' });
         break;
       case 'settings':
-        wx.showToast({ title: 'Coming soon', icon: 'none' });
+        wx.showToast({ title: '设置即将上线', icon: 'none' });
         break;
     }
   },
@@ -93,21 +84,21 @@ Page({
 
   async onLogout() {
     wx.showModal({
-      title: 'Logout',
-      content: 'Are you sure you want to log out?',
+      title: '退出登录',
+      content: '确定要退出登录吗？',
+      confirmText: '退出',
+      cancelText: '取消',
       success: async function(res) {
         if (res.confirm) {
           try {
             await api.post('/api/auth/logout');
-          } catch (err) {
-            // Ignore
-          }
+          } catch (err) {}
           getApp().globalData.userInfo = null;
           getApp().globalData.sessionId = '';
           wx.removeStorageSync('userInfo');
           wx.removeStorageSync('sessionId');
           this.setData({ isLoggedIn: false, userInfo: null });
-          wx.showToast({ title: 'Logged out', icon: 'success' });
+          wx.showToast({ title: '已退出登录', icon: 'success' });
         }
       }.bind(this)
     });
@@ -115,7 +106,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: 'PlanarBridge - MTG & FAB Card Price Tracker',
+      title: 'PlanarBridge — MTG & FAB 卡牌价格查询',
       path: '/pages/home/home'
     };
   }

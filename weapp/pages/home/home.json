@@ -1,6 +1,8 @@
 {
-  "navigationBarTitleText": "PlanarBridge",
+  "navigationBarTitleText": "",
+  "navigationBarBackgroundColor": "#f7f4f0",
+  "navigationBarTextStyle": "black",
   "enablePullDownRefresh": true,
-  "backgroundTextStyle": "light",
-  "backgroundColor": "#0f0f1a"
+  "backgroundColor": "#f7f4f0",
+  "backgroundTextStyle": "dark"
 }

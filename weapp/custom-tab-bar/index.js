@@ -4,23 +4,23 @@ Component({
     list: [
       {
         pagePath: '/pages/home/home',
-        text: 'Discover',
-        icon: '◆'
+        text: '发现',
+        icon: '⌂'
       },
       {
         pagePath: '/pages/library/library',
-        text: 'Library',
-        icon: '▣'
+        text: '卡库',
+        icon: '⚲'
       },
       {
         pagePath: '/pages/community/community',
-        text: 'Community',
-        icon: '◈'
+        text: '社区',
+        icon: '⊞'
       },
       {
         pagePath: '/pages/me/me',
-        text: 'Profile',
-        icon: '◉'
+        text: '我的',
+        icon: '⊙'
       }
     ]
   },

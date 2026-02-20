@@ -1,83 +1,179 @@
-/* Community Page Styles */
+/* ======================================
+   Community Page — 社区 (Light Theme)
+   ====================================== */
 
+.page-community {
+  background-color: #f7f4f0;
+  min-height: 100vh;
+  padding-bottom: 120rpx;
+}
+
+.px-container { padding: 0 32rpx; }
+
+/* ---- Header ---- */
+.comm-header {
+  padding: 48rpx 32rpx 12rpx;
+}
+
+.page-title {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #1a1a0a;
+}
+
+/* ---- Filter Tabs ---- */
 .filter-bar {
-  background-color: #1a1a2e;
-  border-bottom: 1rpx solid rgba(201, 169, 110, 0.1);
-  padding: 16rpx 0;
+  background-color: #f7f4f0;
+  padding: 12rpx 0 16rpx;
+  border-bottom: 1rpx solid #e8e0d4;
+  margin-bottom: 20rpx;
 }
 
 .filter-scroll {
   white-space: nowrap;
-  padding: 0 24rpx;
+  padding: 0 32rpx;
 }
 
 .filter-tab {
   display: inline-block;
   padding: 10rpx 28rpx;
-  margin-right: 16rpx;
+  margin-right: 12rpx;
   border-radius: 20rpx;
   font-size: 26rpx;
-  color: #8a8a9a;
-  background: rgba(255, 255, 255, 0.05);
+  color: #8a7a5a;
+  background: rgba(237, 232, 224, 0.5);
+  border: 1rpx solid #e8e0d4;
 }
 
 .filter-tab.active {
-  color: #1a1a2e;
-  background: linear-gradient(135deg, #c9a96e, #b8923e);
+  color: #ffffff;
+  background: #1a1a0a;
+  border-color: #1a1a0a;
   font-weight: 600;
 }
 
-/* Post Card */
-.community-post {
-  background-color: #1a1a2e;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-bottom: 20rpx;
-  border: 1rpx solid rgba(201, 169, 110, 0.08);
+/* ---- Loading ---- */
+.loading-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
 }
 
+.loading-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid rgba(139, 105, 20, 0.2);
+  border-top: 4rpx solid #8b6914;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: #8a7a5a;
+  font-size: 26rpx;
+  margin-top: 16rpx;
+}
+
+/* ---- Post Cards ---- */
+.posts-list {
+  padding-bottom: 32rpx;
+}
+
+.community-post {
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid #e8e0d4;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+/* ---- Post Header ---- */
 .post-header {
   display: flex;
   align-items: center;
   margin-bottom: 16rpx;
 }
 
+.avatar-small {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .avatar-placeholder {
+  background-color: #ede8e0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #252540;
 }
 
 .post-header-info {
   flex: 1;
-  margin-left: 12rpx;
+  margin-left: 16rpx;
 }
 
 .post-author-name {
   font-size: 28rpx;
-  color: #e0d8c8;
-  font-weight: 500;
+  color: #1a1a0a;
+  font-weight: 600;
   display: block;
 }
 
 .post-time-text {
   font-size: 22rpx;
-  color: #5a5a6a;
+  color: #8a7a5a;
   display: block;
-  margin-top: 2rpx;
+  margin-top: 4rpx;
 }
 
+/* ---- Type Tags ---- */
+.type-tag {
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 6rpx 16rpx;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+}
+
+.tag-discussion {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
+.tag-sell {
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+}
+
+.tag-buy {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+.tag-trade {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+/* ---- Post Body ---- */
 .post-body {
   font-size: 28rpx;
-  color: #c0b8a8;
+  color: #3a3a2a;
   line-height: 1.7;
   display: block;
   margin-bottom: 16rpx;
   white-space: pre-wrap;
 }
 
-/* Post Images */
+/* ---- Post Images ---- */
 .post-images {
   display: flex;
   flex-wrap: wrap;
@@ -87,7 +183,7 @@
 
 .post-image {
   border-radius: 12rpx;
-  background-color: #252540;
+  background-color: #ede8e0;
 }
 
 .post-image.single {
@@ -105,19 +201,19 @@
   height: 240rpx;
 }
 
-/* Linked Card */
+/* ---- Linked Card ---- */
 .post-linked-card {
   display: flex;
   align-items: center;
-  background-color: #252540;
+  background-color: #f7f4f0;
   border-radius: 12rpx;
   padding: 16rpx;
   margin-bottom: 16rpx;
-  border: 1rpx solid rgba(201, 169, 110, 0.1);
+  border: 1rpx solid #e8e0d4;
 }
 
 .post-linked-card:active {
-  background-color: #303050;
+  background-color: #ede8e0;
 }
 
 .linked-card-image {
@@ -125,7 +221,7 @@
   height: 84rpx;
   border-radius: 6rpx;
   margin-right: 16rpx;
-  background-color: #1a1a2e;
+  background-color: #ede8e0;
 }
 
 .linked-card-info {
@@ -134,21 +230,23 @@
 
 .linked-card-name {
   font-size: 26rpx;
-  color: #c9a96e;
+  color: #8b6914;
+  font-weight: 500;
   display: block;
 }
 
 .linked-card-price {
   font-size: 24rpx;
-  color: #8a8a9a;
+  color: #8a7a5a;
   display: block;
   margin-top: 4rpx;
 }
 
-/* Post Actions */
+/* ---- Post Actions ---- */
 .post-actions {
   display: flex;
   gap: 32rpx;
+  padding-top: 4rpx;
 }
 
 .post-action {
@@ -163,27 +261,53 @@
 
 .action-icon {
   font-size: 28rpx;
-  color: #5a5a6a;
+  color: #8a7a5a;
 }
 
 .action-count {
   font-size: 24rpx;
-  color: #5a5a6a;
+  color: #8a7a5a;
 }
 
-/* FAB (Floating Action Button) */
+/* ---- Empty State ---- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0 60rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  opacity: 0.3;
+  margin-bottom: 20rpx;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #8a7a5a;
+}
+
+.empty-sub {
+  font-size: 24rpx;
+  color: #a89a7a;
+  margin-top: 8rpx;
+}
+
+/* ---- FAB Button ---- */
 .fab-button {
   position: fixed;
-  right: 32rpx;
+  right: 40rpx;
   bottom: 160rpx;
   width: 96rpx;
   height: 96rpx;
-  background: linear-gradient(135deg, #c9a96e, #b8923e);
+  background: #8b6914;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(201, 169, 110, 0.3);
+  box-shadow: 0 8rpx 24rpx rgba(139, 105, 20, 0.35);
   z-index: 100;
 }
 
@@ -193,8 +317,7 @@
 }
 
 .fab-icon {
-  font-size: 48rpx;
-  color: #1a1a2e;
-  font-weight: 300;
+  font-size: 40rpx;
+  color: #ffffff;
   line-height: 1;
 }
