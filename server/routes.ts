@@ -266,9 +266,9 @@ export async function registerRoutes(
     res.json(cards);
   });
 
-  app.get("/api/cards/:id", async (req, res) => {
+  app.get("/api/cards/:id", async (req, res, next) => {
     const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid card id" });
+    if (isNaN(id)) return next();
     const card = await storage.getCard(id);
     if (!card) return res.status(404).json({ message: "Card not found" });
     res.json(card);
