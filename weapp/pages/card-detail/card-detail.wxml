@@ -22,28 +22,58 @@
     <!-- ===== 卡牌信息 ===== -->
     <view class="card-info-body">
 
-      <!-- 名称 + 法术力费用 -->
+      <!-- 名称 + 法术力费用 / FAB 属性 -->
       <view class="card-title-row">
         <view class="card-titles">
           <text class="card-display-name">{{displayName}}</text>
-          <text wx:if="{{displayName !== displayNameEn}}" class="card-name-en">{{displayNameEn}}</text>
+          <text wx:if="{{displayName !== displayNameEn && !isFab}}" class="card-name-en">{{displayNameEn}}</text>
         </view>
-        <view wx:if="{{manaSymbols.length > 0}}" class="mana-row">
+        <!-- MTG mana -->
+        <view wx:if="{{!isFab && manaSymbols.length > 0}}" class="mana-row">
           <view wx:for="{{manaSymbols}}" wx:key="*this" class="mana-symbol">{{item}}</view>
         </view>
       </view>
 
-      <!-- 牌型 -->
-      <text class="card-type-line">{{displayTypeLine}}</text>
+      <!-- FAB 属性标签 -->
+      <view wx:if="{{isFab}}" class="fab-stats-row">
+        <view wx:if="{{fabCost}}" class="fab-stat-badge fab-stat-cost">
+          <text>Cost {{fabCost}}</text>
+        </view>
+        <view wx:if="{{fabPitch}}" class="fab-stat-badge fab-stat-pitch">
+          <text>Pitch {{fabPitch}}</text>
+        </view>
+        <view wx:if="{{fabPower}}" class="fab-stat-badge fab-stat-power">
+          <text>Power {{fabPower}}</text>
+        </view>
+        <view wx:if="{{fabDefense}}" class="fab-stat-badge fab-stat-defense">
+          <text>Defense {{fabDefense}}</text>
+        </view>
+        <view wx:if="{{fabHealth}}" class="fab-stat-badge fab-stat-health">
+          <text>Health {{fabHealth}}</text>
+        </view>
+      </view>
 
-      <!-- 系列 + 稀有度 -->
-      <view class="card-set-row">
+      <!-- FAB 关键词 -->
+      <view wx:if="{{isFab && fabKeywords.length > 0}}" class="fab-keywords-row">
+        <text wx:for="{{fabKeywords}}" wx:key="*this" class="fab-keyword-tag">{{item}}</text>
+      </view>
+
+      <!-- 牌型 (MTG only) -->
+      <text wx:if="{{!isFab && displayTypeLine}}" class="card-type-line">{{displayTypeLine}}</text>
+
+      <!-- 系列 + 稀有度 (MTG) -->
+      <view wx:if="{{!isFab}}" class="card-set-row">
         <text class="card-set-name">{{displaySet}}</text>
         <text class="card-rarity" style="color: {{displayRarityColor}};">{{displayRarity}}</text>
       </view>
 
-      <!-- 关注 + 分享 -->
-      <view class="action-row">
+      <!-- 稀有度 (FAB) -->
+      <view wx:if="{{isFab && displayRarity}}" class="card-set-row">
+        <text class="card-rarity" style="color: {{displayRarityColor}};">{{displayRarity}}</text>
+      </view>
+
+      <!-- 关注 + 分享 (MTG only for now) -->
+      <view wx:if="{{!isFab}}" class="action-row">
         <view
           class="follow-btn {{isFollowed ? 'follow-btn-active' : ''}}"
           bindtap="toggleFollow"
@@ -51,6 +81,11 @@
           <text>{{isFollowed ? '★ 已关注' : '☆ 关注价格'}}</text>
         </view>
         <button class="share-btn" open-type="share">分享</button>
+      </view>
+
+      <!-- FAB: 分享按钮 -->
+      <view wx:if="{{isFab}}" class="action-row">
+        <button class="share-btn" style="flex: 1;" open-type="share">分享</button>
       </view>
 
       <!-- 分隔线 -->
@@ -67,7 +102,7 @@
           <text class="price-label">人民币（估算）</text>
           <text class="price-value">¥{{priceCny}}</text>
         </view>
-        <view class="price-row" wx:if="{{priceCnyFoil}}">
+        <view class="price-row" wx:if="{{priceCnyFoil && !isFab}}">
           <text class="price-label">人民币 闪（估算）</text>
           <text class="price-value">¥{{priceCnyFoil}}</text>
         </view>
@@ -87,13 +122,13 @@
           <text class="price-label">美元 闪</text>
           <text class="price-value">${{priceUsdFoil}}</text>
         </view>
-        <!-- 欧元 -->
-        <view class="price-row" wx:if="{{priceEur}}">
+        <!-- 欧元 (MTG only) -->
+        <view class="price-row" wx:if="{{priceEur && !isFab}}">
           <text class="price-label">欧元</text>
           <text class="price-value-secondary">€{{priceEur}}</text>
         </view>
-        <!-- MTGO -->
-        <view class="price-row" wx:if="{{priceTix}}">
+        <!-- MTGO (MTG only) -->
+        <view class="price-row" wx:if="{{priceTix && !isFab}}">
           <text class="price-label">MTGO TIX</text>
           <text class="price-value-secondary">{{priceTix}} TIX</text>
         </view>
@@ -104,8 +139,22 @@
         </view>
       </view>
 
-      <!-- ===== 价格历史 ===== -->
-      <view wx:if="{{priceHistory.length > 0}}" class="price-card" style="margin-top: 0; margin-bottom: 20rpx;">
+      <!-- ===== FAB 各版本价格 ===== -->
+      <block wx:if="{{isFab && fabPrintings.length > 1}}">
+        <view class="section-header" style="margin-top: 8rpx;">
+          <text class="section-title">◆ 各版本价格</text>
+        </view>
+        <view class="price-card">
+          <view wx:for="{{fabPrintings}}" wx:key="id" class="price-row">
+            <text class="price-label">{{item.id}} {{item.foiling ? '(' + item.foiling + ')' : ''}}</text>
+            <text class="price-value" wx:if="{{item.priceUsd}}">${{item.priceUsd}}</text>
+            <text class="no-price-text" wx:else>--</text>
+          </view>
+        </view>
+      </block>
+
+      <!-- ===== 价格历史 (MTG only) ===== -->
+      <view wx:if="{{!isFab && priceHistory.length > 0}}" class="price-card" style="margin-top: 0; margin-bottom: 20rpx;">
         <text class="subsection-title">90 天历史价格</text>
         <view class="price-history-list">
           <view wx:for="{{priceHistory}}" wx:key="id" wx:if="{{index < 10}}" class="price-history-item">
@@ -117,31 +166,33 @@
 
       <!-- ===== 规则文字 ===== -->
       <view wx:if="{{displayOracleText}}" class="oracle-card">
-        <text class="subsection-title">规则文字</text>
+        <text class="subsection-title">{{isFab ? '卡牌文本' : '规则文字'}}</text>
         <text class="oracle-text">{{displayOracleText}}</text>
       </view>
 
-      <!-- 画师 -->
-      <view wx:if="{{displayArtist}}" class="artist-row">
+      <!-- 画师 (MTG only) -->
+      <view wx:if="{{!isFab && displayArtist}}" class="artist-row">
         <text class="artist-text">绘制：{{displayArtist}}</text>
       </view>
 
       <!-- 分隔线 -->
-      <view class="divider"></view>
+      <view wx:if="{{!isFab}}" class="divider"></view>
 
-      <!-- ===== 赛制合法性 ===== -->
-      <view class="section-header">
-        <text class="section-title">◆ 赛制合法性</text>
-      </view>
-
-      <view class="legalities-grid">
-        <view wx:for="{{legalities}}" wx:key="format" class="legality-item">
-          <text class="legality-format">{{item.format}}</text>
-          <text class="legality-status {{item.isLegal ? 'legal' : ''}} {{item.isBanned ? 'banned' : ''}} {{item.isRestricted ? 'restricted' : ''}}">
-            {{item.isLegal ? '✓ 合法' : item.isBanned ? '✗ 禁止' : item.isRestricted ? '◐ 限制' : '—'}}
-          </text>
+      <!-- ===== 赛制合法性 (MTG only) ===== -->
+      <block wx:if="{{!isFab}}">
+        <view class="section-header">
+          <text class="section-title">◆ 赛制合法性</text>
         </view>
-      </view>
+
+        <view class="legalities-grid">
+          <view wx:for="{{legalities}}" wx:key="format" class="legality-item">
+            <text class="legality-format">{{item.format}}</text>
+            <text class="legality-status {{item.isLegal ? 'legal' : ''}} {{item.isBanned ? 'banned' : ''}} {{item.isRestricted ? 'restricted' : ''}}">
+              {{item.isLegal ? '✓ 合法' : item.isBanned ? '✗ 禁止' : item.isRestricted ? '◐ 限制' : '—'}}
+            </text>
+          </view>
+        </view>
+      </block>
 
       <view style="height: 80rpx;"></view>
     </view>

@@ -139,17 +139,24 @@ Page({
     const res = await api.get('/api/fab/cards/search', { q: query, page: this.data.currentPage });
     const raw = (res && (res.cards || res.data)) || [];
     const newCards = raw.map(function(card) {
+      // FAB API returns: { identifier, name, image, prices: { usd, usd_foil, cny_converted, jpy_converted }, ... }
+      var prices = card.prices || {};
+      var priceUsd = prices.usd != null ? Number(prices.usd).toFixed(2) : null;
+      var priceCny = prices.cny_converted != null ? Number(prices.cny_converted).toFixed(2) : null;
+      if (!priceCny && priceUsd) {
+        priceCny = util.usdToCny(parseFloat(priceUsd));
+      }
       return {
-        id: card.id || card.identifier || '',
+        id: card.identifier || card.id || '',
         nameCn: card.name || '',
         nameEn: card.name || '',
-        image: card.image_url || card.image || '',
-        priceCny: null,
-        priceUsd: card.tcgplayer_price || null,
+        image: card.image || card.image_url || '',
+        priceCny: priceCny,
+        priceUsd: priceUsd,
         rarity: card.rarity || '',
         rarityColor: util.getRarityColor(card.rarity),
         rarityName: card.rarity || '',
-        setCode: (card.set_identifier || card.set || '').toUpperCase()
+        setCode: ''
       };
     });
     const allCards = this.data.currentPage === 1 ? newCards : this.data.cards.concat(newCards);

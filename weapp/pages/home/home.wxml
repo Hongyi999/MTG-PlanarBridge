@@ -2,7 +2,10 @@
 
   <!-- ===== 顶部标题栏 ===== -->
   <view class="page-header">
-    <text class="page-title">发现</text>
+    <text class="page-title">{{currentGame === 'fab' ? '发现 · FAB' : '发现'}}</text>
+    <view wx:if="{{currentGame === 'fab'}}" class="header-icon-box">
+      <text style="font-size: 36rpx;">⚔️</text>
+    </view>
   </view>
 
   <!-- ===== 搜索框 ===== -->
@@ -12,7 +15,7 @@
       <input
         class="search-input"
         type="text"
-        placeholder="搜索卡牌、系列或规则..."
+        placeholder="{{currentGame === 'fab' ? '搜索 Flesh and Blood 卡牌...' : '搜索卡牌、系列或规则...'}}"
         placeholder-style="color: #8a7a5a; font-size: 28rpx;"
         value="{{searchQuery}}"
         bindinput="onSearchInput"
@@ -22,7 +25,7 @@
     </view>
   </view>
 
-  <!-- ===== 快速入口 ===== -->
+  <!-- ===== 快速入口 (共用) ===== -->
   <view class="quick-actions px-container">
     <view class="action-card" bindtap="goPriceLists">
       <view class="action-icon-box action-icon-primary">
@@ -46,95 +49,155 @@
     </view>
   </view>
 
-  <!-- ===== 市场动向 ===== -->
-  <view class="section px-container">
-    <view class="section-header">
-      <text style="font-size: 32rpx; margin-right: 8rpx;">📈</text>
-      <text class="section-title">市场动向 (CN)</text>
-    </view>
+  <!-- =============== FAB 模式内容 =============== -->
+  <block wx:if="{{currentGame === 'fab'}}">
 
-    <view wx:if="{{hotLoading}}" class="loading-container">
-      <view class="loading-spinner"></view>
-      <text class="loading-text">加载中...</text>
-    </view>
-
-    <view wx:elif="{{hotCards.length === 0}}" class="empty-state" style="padding: 48rpx 0;">
-      <text class="empty-icon">📊</text>
-      <text class="empty-text">暂无数据，下拉刷新重试</text>
-    </view>
-
-    <view wx:else>
-      <view
-        wx:for="{{hotCards}}"
-        wx:key="id"
-        class="market-row"
-        data-id="{{item.id}}"
-        bindtap="onCardTap"
-      >
-        <image class="market-avatar" src="{{item.image}}" mode="aspectFill" lazy-load />
-        <view class="market-info">
-          <text class="market-name-cn">{{item.nameCn || item.nameEn}}</text>
-          <text class="market-name-en">{{item.nameEn}}</text>
-        </view>
-        <view class="market-price-col">
-          <text class="market-price-cny">{{item.priceCny ? '¥' + item.priceCny : '--'}}</text>
-          <text class="market-price-usd">{{item.priceUsd ? '$' + item.priceUsd : ''}}</text>
+    <!-- FAB 英雄职业 -->
+    <view class="section px-container">
+      <view class="section-header">
+        <text style="font-size: 32rpx; margin-right: 8rpx;">⚔️</text>
+        <text class="section-title">英雄职业</text>
+      </view>
+      <view class="fab-class-grid">
+        <view
+          wx:for="{{fabClasses}}"
+          wx:key="name"
+          class="fab-class-cell"
+          style="border-color: {{item.color}}33; background-color: {{item.color}}0D;"
+          data-name="{{item.name}}"
+          bindtap="onFabClassTap"
+        >
+          <text class="fab-class-cn" style="color: {{item.color}};">{{item.cn}}</text>
+          <text class="fab-class-en">{{item.name}}</text>
         </view>
       </view>
     </view>
-  </view>
 
-  <!-- ===== 社区热门 ===== -->
-  <view class="section">
-    <view class="section-header px-container">
-      <text style="font-size: 32rpx; margin-right: 8rpx;">🔥</text>
-      <text class="section-title">社区热门</text>
-    </view>
-
-    <view wx:if="{{recentLoading}}" class="loading-container">
-      <view class="loading-spinner"></view>
-    </view>
-
-    <scroll-view wx:else scroll-x class="card-h-scroll" show-scrollbar="{{false}}">
-      <view class="card-h-inner">
+    <!-- FAB 赛制 -->
+    <view class="section px-container">
+      <view class="section-header">
+        <text style="font-size: 32rpx; margin-right: 8rpx;">🛡️</text>
+        <text class="section-title">赛制</text>
+      </view>
+      <view class="format-grid">
         <view
-          wx:for="{{recentCards}}"
+          wx:for="{{fabFormats}}"
+          wx:key="name"
+          class="format-cell"
+        >
+          <text class="format-cell-label">{{item.name}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- FAB 介绍卡片 -->
+    <view class="section px-container">
+      <view class="fab-intro-card">
+        <text class="fab-intro-title">关于 Flesh and Blood</text>
+        <text class="fab-intro-text">Flesh and Blood 是一款由 Legend Story Studios 出品的动作卡牌游戏。玩家扮演英雄，在回合制对战中使用技能、武器和装备牌。</text>
+        <view class="fab-intro-link" bindtap="goFabLibrary">
+          <text style="font-size: 24rpx;">🔍</text>
+          <text class="fab-intro-link-text">开始搜索 FAB 卡牌</text>
+        </view>
+      </view>
+    </view>
+
+  </block>
+
+  <!-- =============== MTG 模式内容 =============== -->
+  <block wx:else>
+
+    <!-- 市场动向 -->
+    <view class="section px-container">
+      <view class="section-header">
+        <text style="font-size: 32rpx; margin-right: 8rpx;">📈</text>
+        <text class="section-title">市场动向 (CN)</text>
+      </view>
+
+      <view wx:if="{{hotLoading}}" class="loading-container">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">加载中...</text>
+      </view>
+
+      <view wx:elif="{{hotCards.length === 0}}" class="empty-state" style="padding: 48rpx 0;">
+        <text class="empty-icon">📊</text>
+        <text class="empty-text">暂无数据，下拉刷新重试</text>
+      </view>
+
+      <view wx:else>
+        <view
+          wx:for="{{hotCards}}"
           wx:key="id"
-          class="h-card"
+          class="market-row"
           data-id="{{item.id}}"
           bindtap="onCardTap"
         >
-          <image class="h-card-image" src="{{item.image}}" mode="aspectFill" lazy-load />
-          <view class="h-card-info">
-            <text class="h-card-name">{{item.nameCn || item.nameEn}}</text>
-            <text class="h-card-price">{{item.priceCny ? '¥' + item.priceCny : '--'}}</text>
+          <image class="market-avatar" src="{{item.image}}" mode="aspectFill" lazy-load />
+          <view class="market-info">
+            <text class="market-name-cn">{{item.nameCn || item.nameEn}}</text>
+            <text class="market-name-en">{{item.nameEn}}</text>
+          </view>
+          <view class="market-price-col">
+            <text class="market-price-cny">{{item.priceCny ? '¥' + item.priceCny : '--'}}</text>
+            <text class="market-price-usd">{{item.priceUsd ? '$' + item.priceUsd : ''}}</text>
           </view>
         </view>
-        <view wx:if="{{recentCards.length === 0}}" class="h-card-empty">
-          <text style="color: #8a7a5a; font-size: 24rpx;">暂无数据</text>
+      </view>
+    </view>
+
+    <!-- 社区热门 -->
+    <view class="section">
+      <view class="section-header px-container">
+        <text style="font-size: 32rpx; margin-right: 8rpx;">🔥</text>
+        <text class="section-title">社区热门</text>
+      </view>
+
+      <view wx:if="{{recentLoading}}" class="loading-container">
+        <view class="loading-spinner"></view>
+      </view>
+
+      <scroll-view wx:else scroll-x class="card-h-scroll" show-scrollbar="{{false}}">
+        <view class="card-h-inner">
+          <view
+            wx:for="{{recentCards}}"
+            wx:key="id"
+            class="h-card"
+            data-id="{{item.id}}"
+            bindtap="onCardTap"
+          >
+            <image class="h-card-image" src="{{item.image}}" mode="aspectFill" lazy-load />
+            <view class="h-card-info">
+              <text class="h-card-name">{{item.nameCn || item.nameEn}}</text>
+              <text class="h-card-price">{{item.priceCny ? '¥' + item.priceCny : '--'}}</text>
+            </view>
+          </view>
+          <view wx:if="{{recentCards.length === 0}}" class="h-card-empty">
+            <text style="color: #8a7a5a; font-size: 24rpx;">暂无数据</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 赛制快速入口 -->
+    <view class="section px-container">
+      <view class="section-header">
+        <text style="font-size: 32rpx; margin-right: 8rpx;">⚡</text>
+        <text class="section-title">快速赛制</text>
+      </view>
+      <view class="format-grid">
+        <view
+          wx:for="{{formats}}"
+          wx:key="key"
+          class="format-cell"
+          data-query="{{item.query}}"
+          bindtap="onFormatTap"
+        >
+          <text class="format-cell-label">{{item.name}}</text>
         </view>
       </view>
-    </scroll-view>
-  </view>
+    </view>
 
-  <!-- ===== 赛制快速入口 ===== -->
-  <view class="section px-container">
-    <view class="section-header">
-      <text style="font-size: 32rpx; margin-right: 8rpx;">⚡</text>
-      <text class="section-title">快速赛制</text>
-    </view>
-    <view class="format-grid">
-      <view
-        wx:for="{{formats}}"
-        wx:key="key"
-        class="format-cell"
-        data-query="{{item.query}}"
-        bindtap="onFormatTap"
-      >
-        <text class="format-cell-label">{{item.name}}</text>
-      </view>
-    </view>
-  </view>
+  </block>
 
   <view style="height: 32rpx;"></view>
 

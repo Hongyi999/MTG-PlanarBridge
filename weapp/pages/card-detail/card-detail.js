@@ -18,6 +18,7 @@ Page({
     scryfallId: '',
     card: null,
     loading: true,
+    isFab: false,
     isFollowed: false,
     priceHistory: [],
 
@@ -32,6 +33,15 @@ Page({
     displayRarityColor: '',
     displayArtist: '',
 
+    // FAB-specific
+    fabCost: null,
+    fabPitch: null,
+    fabPower: null,
+    fabDefense: null,
+    fabHealth: null,
+    fabKeywords: [],
+    fabPrintings: [],
+
     priceUsd: null,
     priceUsdFoil: null,
     priceEur: null,
@@ -45,7 +55,14 @@ Page({
   },
 
   onLoad(options) {
-    if (options.scryfallId) {
+    const isFab = options.game === 'fab';
+    this.setData({ isFab: isFab });
+
+    if (isFab && options.scryfallId) {
+      // For FAB cards, scryfallId is actually the identifier (e.g., "MST131")
+      this.setData({ scryfallId: options.scryfallId });
+      this.loadFabCard(options.scryfallId);
+    } else if (options.scryfallId) {
       this.setData({ scryfallId: options.scryfallId });
       this.loadCard(options.scryfallId);
       this.checkFollowed(options.scryfallId);
@@ -53,6 +70,73 @@ Page({
     }
   },
 
+  // ============ FAB Card Loading ============
+  async loadFabCard(identifier) {
+    this.setData({ loading: true });
+    try {
+      const card = await api.get('/api/fab/cards/' + identifier);
+      if (!card) {
+        wx.showToast({ title: '卡牌未找到', icon: 'none' });
+        this.setData({ loading: false });
+        return;
+      }
+
+      var prices = card.prices || {};
+      var priceUsd = prices.usd != null ? Number(prices.usd).toFixed(2) : null;
+      var priceUsdFoil = prices.usd_foil != null ? Number(prices.usd_foil).toFixed(2) : null;
+      var priceCny = prices.cny_converted != null ? Number(prices.cny_converted).toFixed(2) : null;
+      var priceJpy = prices.jpy_converted != null ? Math.round(prices.jpy_converted) : null;
+      if (!priceCny && priceUsd) {
+        priceCny = util.usdToCny(parseFloat(priceUsd));
+      }
+
+      // Map printings with prices
+      var printings = (card.printings || []).map(function(p) {
+        var pp = p.prices || {};
+        return {
+          id: p.id || '',
+          edition: p.edition || '',
+          foiling: p.foiling || '',
+          rarity: p.rarity || '',
+          image: p.image || '',
+          priceUsd: pp.usd != null ? Number(pp.usd).toFixed(2) : null,
+          priceUsdFoil: pp.usd_foil != null ? Number(pp.usd_foil).toFixed(2) : null
+        };
+      });
+
+      this.setData({
+        card: card,
+        loading: false,
+        displayName: card.name || '',
+        displayNameEn: card.name || '',
+        displayImage: card.image || '',
+        displayTypeLine: '',
+        displayOracleText: card.text || '',
+        displaySet: '',
+        displayRarity: card.rarity || '',
+        displayRarityColor: util.getRarityColor(card.rarity),
+        fabCost: card.cost || null,
+        fabPitch: card.pitch || null,
+        fabPower: card.power || null,
+        fabDefense: card.defense || null,
+        fabHealth: card.health || null,
+        fabKeywords: card.keywords || [],
+        fabPrintings: printings,
+        priceUsd: priceUsd,
+        priceUsdFoil: priceUsdFoil,
+        priceCny: priceCny,
+        priceJpy: priceJpy,
+      });
+
+      wx.setNavigationBarTitle({ title: card.name || 'FAB Card' });
+    } catch (err) {
+      console.error('[CardDetail] Failed to load FAB card:', err);
+      wx.showToast({ title: '加载失败，请重试', icon: 'none' });
+      this.setData({ loading: false });
+    }
+  },
+
+  // ============ MTG Card Loading (original) ============
   async loadCard(scryfallId) {
     this.setData({ loading: true });
     try {
@@ -63,7 +147,6 @@ Page({
         return;
       }
 
-      // Support both cached CardData format and raw Scryfall format
       const displayName = card.name_cn || card.printed_name || card.name_en || card.name || '';
       const displayNameEn = card.name_en || card.name || '';
       const displayImage = util.getCardImage(card, 'large') || util.getCardImage(card, 'normal');
@@ -77,13 +160,11 @@ Page({
       const displayRarityColor = util.getRarityColor(card.rarity);
       const displayArtist = card.artist || '';
 
-      // Prices — support both cached format and raw Scryfall format
       const prices = card.prices || {};
       const priceUsd = prices.usd || null;
       const priceUsdFoil = prices.usd_foil || null;
       const priceEur = prices.eur || null;
       const priceTix = prices.tix || null;
-      // Try cached CNY conversion first, then compute from USD
       const priceCny = prices.cny_converted != null
         ? prices.cny_converted
         : util.usdToCny(priceUsd);
@@ -92,7 +173,6 @@ Page({
         : util.usdToCny(priceUsdFoil);
       const priceJpy = util.usdToJpy(priceUsd);
 
-      // Legalities
       const legalitiesObj = card.legalities || {};
       const formatOrder = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'commander', 'pauper', 'brawl'];
       const legalities = formatOrder.map(function(fmt) {
@@ -215,7 +295,7 @@ Page({
     const card = this.data.card;
     return {
       title: (this.data.displayName || '卡牌详情') + ' - PlanarBridge',
-      path: '/pages/card-detail/card-detail?scryfallId=' + this.data.scryfallId,
+      path: '/pages/card-detail/card-detail?scryfallId=' + this.data.scryfallId + (this.data.isFab ? '&game=fab' : ''),
       imageUrl: this.data.displayImage
     };
   }
