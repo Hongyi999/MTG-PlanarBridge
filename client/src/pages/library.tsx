@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { searchCards, type SearchResult } from "@/lib/api";
 import { parseSmartSearch } from "@/lib/smart-search";
 import { useGame } from "@/hooks/use-game";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -79,10 +79,22 @@ function FaBCardGrid({ card }: { card: FaBCardData }) {
 
 export default function Library() {
   const { game, gameInfo } = useGame();
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchString = useSearch();
+  const urlQuery = new URLSearchParams(searchString).get("q") || "";
+
+  const [searchQuery, setSearchQuery] = useState(urlQuery);
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [smartExplanation, setSmartExplanation] = useState("");
   const [page, setPage] = useState(1);
+
+  // Auto-trigger search when navigating here with a ?q= URL param (e.g., from home page class links)
+  useEffect(() => {
+    if (urlQuery) {
+      setSearchQuery(urlQuery);
+      setSubmittedQuery(urlQuery);
+      setPage(1);
+    }
+  }, [urlQuery]);
 
   // Advanced filter state
   const [filterName, setFilterName] = useState("");

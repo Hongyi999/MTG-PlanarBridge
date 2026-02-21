@@ -3,22 +3,38 @@
  *
  * Uses the TCGCSV API (free, no key required) which mirrors TCGPlayer data.
  * Prices are keyed by tcgplayer_product_id and refreshed every 24 hours.
+ *
+ * Fallback: if TCGCSV is unreachable, loads from server/fab-prices-local.json
+ * (auto-saved whenever a successful TCGCSV fetch completes).
  */
 
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { getFaBGroups, getFaBPrices } from "./tcgcsv";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const LOCAL_PRICE_FILE = path.join(__dirname, "fab-prices-local.json");
 
 export interface FaBPriceEntry {
   usd: number | null;       // Normal / market price
   usd_foil: number | null;  // Foil market price (Rainbow Foil, Cold Foil, etc.)
 }
 
+interface LocalPriceFile {
+  lastUpdated: string;
+  source: "tcgcsv" | "manual";
+  prices: Record<string, { usd: number | null; usd_foil: number | null }>;
+}
+
 class FaBPriceCache {
   private priceMap: Map<number, FaBPriceEntry> = new Map();
   private lastFetched: Date | null = null;
   private loadPromise: Promise<void> | null = null;
+  private loadedFromLocal = false;
 
   private readonly CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-  private readonly BATCH_SIZE = 5; // groups fetched in parallel per round
 
   /** Returns true if prices are stale or have never been loaded */
   private isStale(): boolean {
@@ -47,8 +63,9 @@ class FaBPriceCache {
       const newMap = new Map<number, FaBPriceEntry>();
 
       // Fetch prices for all groups in batches to avoid overwhelming the API
-      for (let i = 0; i < groups.length; i += this.BATCH_SIZE) {
-        const batch = groups.slice(i, i + this.BATCH_SIZE);
+      const BATCH_SIZE = 5;
+      for (let i = 0; i < groups.length; i += BATCH_SIZE) {
+        const batch = groups.slice(i, i + BATCH_SIZE);
         const results = await Promise.allSettled(
           batch.map((g) => getFaBPrices(g.groupId))
         );
@@ -65,7 +82,6 @@ class FaBPriceCache {
             if (isFoil) {
               newMap.set(id, { ...existing, usd_foil: marketPrice });
             } else {
-              // "Normal" or any non-foil variant
               newMap.set(id, { ...existing, usd: marketPrice });
             }
           }
@@ -74,13 +90,66 @@ class FaBPriceCache {
 
       this.priceMap = newMap;
       this.lastFetched = new Date();
+      this.loadedFromLocal = false;
       const elapsed = Date.now() - started;
       console.log(
         `[FaBPriceCache] ✓ Loaded prices for ${newMap.size} products across ${groups.length} sets in ${elapsed}ms`
       );
+
+      // Persist to local file for offline fallback
+      this.saveToLocalFile();
     } catch (err: any) {
-      console.error("[FaBPriceCache] ✗ Failed to load prices:", err.message);
-      // Keep existing prices if any; don't reset lastFetched so we retry next request
+      console.warn(`[FaBPriceCache] TCGCSV unreachable: ${err.message}`);
+      // Try loading from local file as fallback
+      await this.loadFromLocalFile();
+    }
+  }
+
+  /** Save current price map to a local JSON file for offline use */
+  private saveToLocalFile(): void {
+    try {
+      const prices: Record<string, { usd: number | null; usd_foil: number | null }> = {};
+      for (const [id, entry] of this.priceMap) {
+        prices[String(id)] = entry;
+      }
+      const data: LocalPriceFile = {
+        lastUpdated: new Date().toISOString(),
+        source: "tcgcsv",
+        prices,
+      };
+      fs.writeFileSync(LOCAL_PRICE_FILE, JSON.stringify(data, null, 2), "utf-8");
+      console.log(`[FaBPriceCache] ✓ Saved ${this.priceMap.size} prices to local file`);
+    } catch (err: any) {
+      console.warn(`[FaBPriceCache] Could not save local price file: ${err.message}`);
+    }
+  }
+
+  /** Load prices from local fallback file */
+  private async loadFromLocalFile(): Promise<void> {
+    if (!fs.existsSync(LOCAL_PRICE_FILE)) {
+      console.warn("[FaBPriceCache] No local price file found. FAB prices will show as N/A.");
+      // Mark as "loaded" with empty map so we don't keep retrying on every request
+      this.lastFetched = new Date(Date.now() - this.CACHE_TTL_MS + 5 * 60 * 1000); // retry in 5 min
+      return;
+    }
+
+    try {
+      const raw = fs.readFileSync(LOCAL_PRICE_FILE, "utf-8");
+      const data: LocalPriceFile = JSON.parse(raw);
+      const newMap = new Map<number, FaBPriceEntry>();
+      for (const [idStr, entry] of Object.entries(data.prices)) {
+        const id = parseInt(idStr, 10);
+        if (!isNaN(id)) newMap.set(id, entry);
+      }
+      this.priceMap = newMap;
+      this.lastFetched = new Date(); // treat as fresh to avoid hammering
+      this.loadedFromLocal = true;
+      console.log(
+        `[FaBPriceCache] ✓ Loaded ${newMap.size} prices from local file (last updated: ${data.lastUpdated})`
+      );
+    } catch (err: any) {
+      console.error(`[FaBPriceCache] Failed to load local price file: ${err.message}`);
+      this.lastFetched = new Date(Date.now() - this.CACHE_TTL_MS + 5 * 60 * 1000);
     }
   }
 
@@ -104,6 +173,7 @@ class FaBPriceCache {
       productCount: this.priceMap.size,
       lastFetched: this.lastFetched,
       isStale: this.isStale(),
+      loadedFromLocal: this.loadedFromLocal,
     };
   }
 
