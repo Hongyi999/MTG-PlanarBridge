@@ -13,6 +13,7 @@ Page({
       { key: 'followed',   icon: '★', label: '关注的卡牌', desc: '追踪你喜爱卡牌的价格变动' },
       { key: 'priceLists', icon: '≡', label: '价格列表',   desc: '管理心愿单和出售列表' },
       { key: 'history',    icon: '◷', label: '浏览足迹',   desc: '最近查看过的卡牌' },
+      { key: 'messages',   icon: '◇', label: '私信',        desc: '与其他用户直接对话' },
       { key: 'settings',   icon: '⚙', label: '设置',       desc: '汇率偏好等配置' }
     ]
   },
@@ -72,6 +73,9 @@ Page({
         break;
       case 'history':
         wx.navigateTo({ url: '/pages/card-history/card-history' });
+        break;
+      case 'messages':
+        wx.navigateTo({ url: '/pages/chat/chat' });
         break;
       case 'settings':
         wx.showToast({ title: '设置功能即将上线', icon: 'none' });

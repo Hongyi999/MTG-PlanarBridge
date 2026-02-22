@@ -8,7 +8,8 @@
     "pages/create-post/create-post",
     "pages/price-lists/price-lists",
     "pages/card-history/card-history",
-    "pages/login/login"
+    "pages/login/login",
+    "pages/chat/chat"
   ],
   "window": {
     "navigationBarBackgroundColor": "#f7f4f0",
