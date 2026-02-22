@@ -57,7 +57,8 @@ Page({
     }
     this.setData({ loading: true });
     try {
-      var user = await api.post('/api/auth/login', { phone: phone, code: code });
+      var res = await api.post('/api/auth/login', { phone: phone, code: code });
+      var user = res && res.user;
       if (user && user.id) {
         getApp().globalData.userInfo = user;
         wx.setStorageSync('userInfo', user);

@@ -33,7 +33,8 @@ Page({
     if (app.globalData.userInfo) {
       this.setData({ isLoggedIn: true, userInfo: app.globalData.userInfo });
     } else {
-      api.get('/api/auth/me').then(function(user) {
+      api.get('/api/auth/me').then(function(res) {
+        var user = res && res.user;
         if (user && user.id) {
           app.globalData.userInfo = user;
           wx.setStorageSync('userInfo', user);

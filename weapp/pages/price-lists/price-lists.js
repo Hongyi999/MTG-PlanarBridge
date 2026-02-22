@@ -162,7 +162,7 @@ Page({
     var itemId = this.data.editingItemId;
     var qty = parseInt(this.data.editQuantity) || 1;
     try {
-      await api.put('/api/price-lists/' + this.data.selectedListId + '/items/' + itemId, {
+      await api.patch('/api/price-list-items/' + itemId, {
         quantity: qty,
         notes: this.data.editNotes,
         condition: this.data.editCondition
@@ -179,7 +179,7 @@ Page({
   async removeItem(e) {
     var itemId = e.currentTarget.dataset.id;
     try {
-      await api.del('/api/price-lists/' + this.data.selectedListId + '/items/' + itemId);
+      await api.del('/api/price-list-items/' + itemId);
       await this.loadItems(this.data.selectedListId);
       wx.showToast({ title: '已移除', icon: 'success' });
     } catch (err) {
