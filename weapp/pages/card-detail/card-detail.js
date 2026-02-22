@@ -51,7 +51,11 @@ Page({
     priceJpy: null,
 
     legalities: [],
-    manaSymbols: []
+    manaSymbols: [],
+
+    // Add-to-list
+    showListPicker: false,
+    priceLists: []
   },
 
   onLoad(options) {
@@ -284,6 +288,49 @@ Page({
       }
     }
   },
+
+  async openListPicker() {
+    try {
+      var lists = await api.get('/api/price-lists');
+      this.setData({ priceLists: lists || [], showListPicker: true });
+    } catch (err) {
+      wx.showToast({ title: '加载列表失败', icon: 'none' });
+    }
+  },
+
+  closeListPicker() {
+    this.setData({ showListPicker: false });
+  },
+
+  async addToList(e) {
+    var listId = e.currentTarget.dataset.id;
+    var card = this.data.card;
+    if (!card || !listId) return;
+    var cardId = util.getCardId(card);
+    var nameCn = util.getCardName(card);
+    var nameEn = util.getCardNameEn(card);
+    var image = util.getCardImage(card, 'small');
+    var priceCny = util.getCardPriceCny(card);
+    var priceUsd = util.getCardPriceUsd(card);
+    this.setData({ showListPicker: false });
+    try {
+      await api.post('/api/price-lists/' + listId + '/items', {
+        scryfallId: cardId,
+        cardName: nameEn,
+        cardNameCn: nameCn,
+        cardImage: image,
+        priceCny: priceCny,
+        priceUsd: priceUsd,
+        quantity: 1,
+        condition: 'NM'
+      });
+      wx.showToast({ title: '已加入列表', icon: 'success' });
+    } catch (err) {
+      wx.showToast({ title: '加入失败', icon: 'none' });
+    }
+  },
+
+  noop() {},
 
   previewImage() {
     if (this.data.displayImage) {

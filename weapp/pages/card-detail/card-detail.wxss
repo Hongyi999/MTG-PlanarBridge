@@ -419,3 +419,104 @@
   background: rgba(237, 232, 224, 0.5);
   border: 1rpx solid #e8e0d4;
 }
+
+/* ---- Add to List Button ---- */
+.add-list-btn {
+  flex: 1;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+  background: #8b6914;
+  font-size: 26rpx;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.add-list-btn:active { background: #7a5c10; }
+
+/* ---- List Picker Modal ---- */
+.list-picker-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+}
+
+.list-picker-box {
+  width: 100%;
+  background: #faf8f5;
+  border-radius: 32rpx 32rpx 0 0;
+  padding-bottom: 40rpx;
+  overflow: hidden;
+}
+
+.list-picker-handle {
+  width: 80rpx;
+  height: 8rpx;
+  border-radius: 4rpx;
+  background: #d4c8b0;
+  margin: 20rpx auto 0;
+}
+
+.list-picker-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1a1a0a;
+  padding: 24rpx 32rpx 16rpx;
+  border-bottom: 1rpx solid #e8e0d4;
+}
+
+.list-picker-empty {
+  padding: 48rpx 32rpx;
+  text-align: center;
+}
+
+.list-picker-empty-text { font-size: 26rpx; color: #8a7a5a; }
+
+.list-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #f0ebe3;
+}
+
+.list-picker-row:active { background: rgba(139,105,20,0.04); }
+
+.list-picker-icon-wrap {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 14rpx;
+  background: rgba(139,105,20,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.list-picker-icon { font-size: 28rpx; color: #8b6914; }
+
+.list-picker-info { flex: 1; }
+.list-picker-name { font-size: 28rpx; font-weight: 600; color: #1a1a0a; display: block; }
+.list-picker-count { font-size: 22rpx; color: #8a7a5a; display: block; margin-top: 4rpx; }
+.list-picker-arrow { font-size: 36rpx; color: #c0b8a0; }
+
+.list-picker-cancel {
+  margin: 20rpx 32rpx 0;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20rpx;
+  border: 1rpx solid #e8e0d4;
+  background: #ffffff;
+  font-size: 28rpx;
+  color: #8a7a5a;
+}
+
+.list-picker-cancel:active { background: #f7f4f0; }

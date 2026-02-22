@@ -72,13 +72,16 @@
         <text class="card-rarity" style="color: {{displayRarityColor}};">{{displayRarity}}</text>
       </view>
 
-      <!-- 关注 + 分享 (MTG only for now) -->
+      <!-- 关注 + 加入列表 + 分享 (MTG only for now) -->
       <view wx:if="{{!isFab}}" class="action-row">
         <view
           class="follow-btn {{isFollowed ? 'follow-btn-active' : ''}}"
           bindtap="toggleFollow"
         >
-          <text>{{isFollowed ? '★ 已关注' : '☆ 关注价格'}}</text>
+          <text>{{isFollowed ? '★ 已关注' : '☆ 关注'}}</text>
+        </view>
+        <view class="add-list-btn" bindtap="openListPicker">
+          <text>＋ 加入列表</text>
         </view>
         <button class="share-btn" open-type="share">分享</button>
       </view>
@@ -197,5 +200,32 @@
       <view style="height: 80rpx;"></view>
     </view>
   </block>
+
+  <!-- ===== 加入列表 Picker Modal ===== -->
+  <view wx:if="{{showListPicker}}" class="list-picker-overlay" bindtap="closeListPicker">
+    <view class="list-picker-box" catchtap="noop">
+      <view class="list-picker-handle"></view>
+      <text class="list-picker-title">选择价格列表</text>
+
+      <view wx:if="{{priceLists.length === 0}}" class="list-picker-empty">
+        <text class="list-picker-empty-text">暂无列表，请先在"我的"中创建</text>
+      </view>
+
+      <view wx:for="{{priceLists}}" wx:key="id" class="list-picker-row" data-id="{{item.id}}" bindtap="addToList">
+        <view class="list-picker-icon-wrap">
+          <text class="list-picker-icon">≡</text>
+        </view>
+        <view class="list-picker-info">
+          <text class="list-picker-name">{{item.name}}</text>
+          <text class="list-picker-count">{{item.itemCount || 0}} 张卡牌</text>
+        </view>
+        <text class="list-picker-arrow">›</text>
+      </view>
+
+      <view class="list-picker-cancel" bindtap="closeListPicker">
+        <text>取消</text>
+      </view>
+    </view>
+  </view>
 
 </view>
