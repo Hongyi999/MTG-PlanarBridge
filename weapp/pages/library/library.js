@@ -10,43 +10,66 @@ Page({
     currentPage: 1,
     totalCards: 0,
     searched: false,
-    currentGame: 'mtg', // 'mtg' | 'fab'
+    currentGame: 'mtg',
 
-    // Filters
-    showFilters: false,
+    // Advanced filter sheet
+    showFilterSheet: false,
+
+    // Filter fields (matching React library.tsx)
+    filterName: '',
+    filterRulesText: '',
+    filterType: '',
+    filterSet: '',
+    filterRarity: [],   // array of selected rarities
+    filterColors: [],   // array of selected color codes
+    filterFormat: '',
+    filterArtist: '',
+    filterLang: 'any',
+    filterCmcOp: '=',
+    filterCmcVal: '',
+
     hasActiveFilters: false,
-    selectedColors: [],
-    selectedRarity: '',
-    selectedFormat: '',
 
     colorOptions: [
-      { code: 'W', name: '白', color: '#f9f3e3', border: true },
-      { code: 'U', name: '蓝', color: '#1565c0' },
-      { code: 'B', name: '黑', color: '#3b3b3b' },
-      { code: 'R', name: '红', color: '#d32029' },
-      { code: 'G', name: '绿', color: '#1b5e20' }
+      { code: 'W', label: 'W', bg: '#f9f3e3', dark: false },
+      { code: 'U', label: 'U', bg: '#1565c0', dark: true },
+      { code: 'B', label: 'B', bg: '#3b3b3b', dark: true },
+      { code: 'R', label: 'R', bg: '#d32029', dark: true },
+      { code: 'G', label: 'G', bg: '#1b5e20', dark: true },
+      { code: 'C', label: 'C', bg: '#94a3b8', dark: true }
     ],
     rarityOptions: [
-      { key: 'common',   label: '普通' },
-      { key: 'uncommon', label: '非普' },
-      { key: 'rare',     label: '稀有' },
-      { key: 'mythic',   label: '秘稀' }
+      { key: 'mythic',   label: '秘稀 Mythic',      dot: '#ea580c' },
+      { key: 'rare',     label: '稀有 Rare',         dot: '#ca8a04' },
+      { key: 'uncommon', label: '非普通 Uncommon',   dot: '#64748b' },
+      { key: 'common',   label: '普通 Common',       dot: '#3b3b3b' }
     ],
     formatOptions: [
-      { key: 'standard',  label: '标准' },
-      { key: 'modern',    label: '现代' },
-      { key: 'commander', label: '统帅' },
-      { key: 'pioneer',   label: '先驱' },
-      { key: 'legacy',    label: '薪传' },
-      { key: 'vintage',   label: '特选' },
-      { key: 'pauper',    label: '平民' }
-    ]
+      { key: '',          label: '不限赛制 (All Formats)' },
+      { key: 'standard',  label: 'Standard (标准)' },
+      { key: 'pioneer',   label: 'Pioneer (先驱)' },
+      { key: 'modern',    label: 'Modern (近代)' },
+      { key: 'commander', label: 'Commander (指挥官)' },
+      { key: 'legacy',    label: 'Legacy (薪传)' },
+      { key: 'vintage',   label: 'Vintage (特选)' },
+      { key: 'pauper',    label: 'Pauper (纯普)' }
+    ],
+    langOptions: [
+      { key: 'any', label: '所有语言 (All Languages)' },
+      { key: 'cn',  label: '简体中文' },
+      { key: 'en',  label: 'English' },
+      { key: 'jp',  label: '日本語' }
+    ],
+    cmcOps: ['=', '≤', '≥', '<', '>'],
+    filterFormatIndex: 0,
+    filterFormatLabel: '不限赛制 (All Formats)',
+    filterLangIndex: 0,
+    filterLangLabel: '所有语言 (All Languages)'
   },
 
   onLoad() {
-    // Load game from globalData
-    const app = getApp();
-    const game = app.globalData.currentGame || 'mtg';
+    var saved = wx.getStorageSync('selected_game');
+    var game = saved === 'fab' ? 'fab' : (getApp().globalData.currentGame || 'mtg');
     this.setData({ currentGame: game });
     this._checkPendingQuery();
   },
@@ -55,15 +78,24 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 });
     }
+    // Sync game from global
+    var game = getApp().globalData.currentGame || 'mtg';
+    if (game !== this.data.currentGame) {
+      this.setData({
+        currentGame: game,
+        cards: [], searched: false,
+        hasMore: false, totalCards: 0, currentPage: 1
+      });
+    }
     this._checkPendingQuery();
   },
 
   _checkPendingQuery() {
-    const app = getApp();
+    var app = getApp();
     if (app.globalData.pendingLibraryQuery) {
-      const query = app.globalData.pendingLibraryQuery;
+      var query = app.globalData.pendingLibraryQuery;
       app.globalData.pendingLibraryQuery = '';
-      this.setData({ searchQuery: query, cards: [], currentPage: 1 });
+      this.setData({ searchQuery: query, cards: [], currentPage: 1, searched: false });
       this.doSearch();
     }
   },
@@ -82,11 +114,7 @@ Page({
   },
 
   async doSearch() {
-    const query = this.data.searchQuery.trim();
-    if (!query) {
-      wx.showToast({ title: '请输入搜索词', icon: 'none' });
-      return;
-    }
+    var query = this.data.searchQuery.trim();
     this.setData({ loading: true, searched: true });
 
     try {
@@ -102,31 +130,62 @@ Page({
     }
   },
 
-  async doMtgSearch(query) {
-    let q = query;
-    if (this.data.selectedColors.length > 0) {
-      q += ' ' + this.data.selectedColors.map(function(c) { return 'color:' + c; }).join(' ');
+  _buildMtgQuery() {
+    var parts = [];
+    var name = this.data.filterName || this.data.searchQuery.trim();
+    if (name) parts.push(name);
+    if (this.data.filterRulesText) parts.push('oracle:"' + this.data.filterRulesText + '"');
+    if (this.data.filterType) parts.push('type:' + this.data.filterType);
+    if (this.data.filterSet) parts.push('set:' + this.data.filterSet);
+    var rarities = this.data.filterRarity;
+    if (rarities && rarities.length > 0) {
+      rarities.forEach(function(r) { parts.push('rarity:' + r); });
     }
-    if (this.data.selectedRarity) q += ' rarity:' + this.data.selectedRarity;
-    if (this.data.selectedFormat) q += ' f:' + this.data.selectedFormat;
+    var colors = this.data.filterColors;
+    if (colors && colors.length > 0) parts.push('color:' + colors.join(''));
+    var fmt = this.data.filterFormat;
+    if (fmt) parts.push('format:' + fmt);
+    if (this.data.filterArtist) parts.push('artist:"' + this.data.filterArtist + '"');
+    var lang = this.data.filterLang;
+    if (lang && lang !== 'any') {
+      var langMap = { cn: 'zhs', en: 'en', jp: 'ja' };
+      parts.push('lang:' + (langMap[lang] || lang));
+    }
+    if (this.data.filterCmcVal) {
+      var opMap = { '=': '=', '≤': '<=', '≥': '>=', '<': '<', '>': '>' };
+      parts.push('cmc' + (opMap[this.data.filterCmcOp] || '=') + this.data.filterCmcVal);
+    }
+    return parts.join(' ');
+  },
 
-    const res = await api.get('/api/cards/search', { q: q, page: this.data.currentPage });
-    const raw = (res && (res.cards || res.data)) || [];
-    const newCards = raw.map(function(card) {
+  async doMtgSearch(query) {
+    var q = this._buildMtgQuery() || query;
+    if (!q) {
+      this.setData({ loading: false });
+      return;
+    }
+    var res = await api.get('/api/cards/search', { q: q, page: this.data.currentPage });
+    var raw = (res && (res.cards || res.data)) || [];
+    var newCards = raw.map(function(card) {
+      var prices = card.prices || {};
+      var priceCny = prices.cny_converted != null ? Number(prices.cny_converted).toFixed(2) : null;
+      var priceUsd = prices.usd != null ? Number(prices.usd).toFixed(2) : null;
       return {
         id: util.getCardId(card),
-        nameCn: util.getCardName(card),
-        nameEn: util.getCardNameEn(card),
+        nameCn: card.name_cn || card.printed_name || card.name_en || card.name || '',
+        nameEn: card.name_en || card.name || '',
         image: util.getCardImage(card, 'normal'),
-        priceCny: util.getCardPriceCny(card),
-        priceUsd: util.getCardPriceUsd(card),
+        priceCny: priceCny,
+        priceUsd: priceUsd,
         rarity: card.rarity || '',
         rarityColor: util.getRarityColor(card.rarity),
         rarityName: util.getRarityName(card.rarity),
-        setCode: (card.set_code || card.set || '').toUpperCase()
+        setCode: (card.set_code || card.set || '').toUpperCase(),
+        // FAB pitch color coding
+        pitch: null
       };
     });
-    const allCards = this.data.currentPage === 1 ? newCards : this.data.cards.concat(newCards);
+    var allCards = this.data.currentPage === 1 ? newCards : this.data.cards.concat(newCards);
     this.setData({
       cards: allCards,
       hasMore: !!(res && res.has_more),
@@ -136,16 +195,22 @@ Page({
   },
 
   async doFabSearch(query) {
-    const res = await api.get('/api/fab/cards/search', { q: query, page: this.data.currentPage });
-    const raw = (res && (res.cards || res.data)) || [];
-    const newCards = raw.map(function(card) {
-      // FAB API returns: { identifier, name, image, prices: { usd, usd_foil, cny_converted, jpy_converted }, ... }
+    if (!query) {
+      this.setData({ loading: false });
+      return;
+    }
+    var res = await api.get('/api/fab/cards/search', { q: query, page: this.data.currentPage });
+    var raw = (res && (res.cards || res.data)) || [];
+    var newCards = raw.map(function(card) {
       var prices = card.prices || {};
       var priceUsd = prices.usd != null ? Number(prices.usd).toFixed(2) : null;
       var priceCny = prices.cny_converted != null ? Number(prices.cny_converted).toFixed(2) : null;
-      if (!priceCny && priceUsd) {
-        priceCny = util.usdToCny(parseFloat(priceUsd));
-      }
+      if (!priceCny && priceUsd) priceCny = util.usdToCny(parseFloat(priceUsd));
+      // Pitch colors: 1=red, 2=yellow, 3=blue
+      var pitchBorderClass = '';
+      if (card.pitch === '1') pitchBorderClass = 'pitch-red';
+      else if (card.pitch === '2') pitchBorderClass = 'pitch-yellow';
+      else if (card.pitch === '3') pitchBorderClass = 'pitch-blue';
       return {
         id: card.identifier || card.id || '',
         nameCn: card.name || '',
@@ -156,10 +221,13 @@ Page({
         rarity: card.rarity || '',
         rarityColor: util.getRarityColor(card.rarity),
         rarityName: card.rarity || '',
-        setCode: ''
+        setCode: '',
+        cost: card.cost || null,
+        pitch: card.pitch || null,
+        pitchBorderClass: pitchBorderClass
       };
     });
-    const allCards = this.data.currentPage === 1 ? newCards : this.data.cards.concat(newCards);
+    var allCards = this.data.currentPage === 1 ? newCards : this.data.cards.concat(newCards);
     this.setData({
       cards: allCards,
       hasMore: !!(res && res.has_more),
@@ -174,8 +242,14 @@ Page({
     this.doSearch();
   },
 
+  prevPage() {
+    if (this.data.currentPage <= 1) return;
+    this.setData({ currentPage: this.data.currentPage - 1, cards: [] });
+    this.doSearch();
+  },
+
   onCardTap(e) {
-    const id = e.currentTarget.dataset.id;
+    var id = e.currentTarget.dataset.id;
     if (!id) return;
     if (this.data.currentGame === 'fab') {
       wx.navigateTo({ url: '/pages/card-detail/card-detail?scryfallId=' + id + '&game=fab' });
@@ -184,47 +258,83 @@ Page({
     }
   },
 
-  toggleGame() {
-    const newGame = this.data.currentGame === 'mtg' ? 'fab' : 'mtg';
-    getApp().globalData.currentGame = newGame;
+  // ---- Advanced Filter Sheet ----
+  openFilterSheet() {
+    this.setData({ showFilterSheet: true });
+  },
+
+  closeFilterSheet() {
+    this.setData({ showFilterSheet: false });
+  },
+
+  onFilterNameInput(e) { this.setData({ filterName: e.detail.value }); },
+  onFilterRulesTextInput(e) { this.setData({ filterRulesText: e.detail.value }); },
+  onFilterTypeInput(e) { this.setData({ filterType: e.detail.value }); },
+  onFilterSetInput(e) { this.setData({ filterSet: e.detail.value }); },
+  onFilterArtistInput(e) { this.setData({ filterArtist: e.detail.value }); },
+  onFilterCmcValInput(e) { this.setData({ filterCmcVal: e.detail.value }); },
+
+  toggleFilterColor(e) {
+    var code = e.currentTarget.dataset.code;
+    var colors = this.data.filterColors.slice();
+    var idx = colors.indexOf(code);
+    if (idx >= 0) colors.splice(idx, 1);
+    else colors.push(code);
+    this.setData({ filterColors: colors });
+  },
+
+  toggleFilterRarity(e) {
+    var key = e.currentTarget.dataset.key;
+    var rarities = this.data.filterRarity.slice();
+    var idx = rarities.indexOf(key);
+    if (idx >= 0) rarities.splice(idx, 1);
+    else rarities.push(key);
+    this.setData({ filterRarity: rarities });
+  },
+
+  selectFilterFormat(e) {
+    var idx = parseInt(e.detail.value) || 0;
+    var opt = this.data.formatOptions[idx];
     this.setData({
-      currentGame: newGame,
-      cards: [], searched: false, searchQuery: '',
-      hasMore: false, totalCards: 0, currentPage: 1,
-      showFilters: false
+      filterFormat: opt ? opt.key : '',
+      filterFormatIndex: idx,
+      filterFormatLabel: opt ? opt.label : '不限赛制 (All Formats)'
     });
   },
 
-  toggleFilters() {
-    this.setData({ showFilters: !this.data.showFilters });
+  selectFilterLang(e) {
+    var idx = parseInt(e.detail.value) || 0;
+    var opt = this.data.langOptions[idx];
+    this.setData({
+      filterLang: opt ? opt.key : 'any',
+      filterLangIndex: idx,
+      filterLangLabel: opt ? opt.label : '所有语言 (All Languages)'
+    });
   },
 
-  toggleColor(e) {
-    const code = e.currentTarget.dataset.code;
-    const colors = this.data.selectedColors.slice();
-    const idx = colors.indexOf(code);
-    if (idx >= 0) colors.splice(idx, 1);
-    else colors.push(code);
-    this.setData({ selectedColors: colors, hasActiveFilters: this._checkActive(colors, this.data.selectedRarity, this.data.selectedFormat) });
+  selectFilterCmcOp(e) {
+    this.setData({ filterCmcOp: e.detail.value });
   },
 
-  selectRarity(e) {
-    const rarity = e.currentTarget.dataset.rarity;
-    const val = this.data.selectedRarity === rarity ? '' : rarity;
-    this.setData({ selectedRarity: val, hasActiveFilters: this._checkActive(this.data.selectedColors, val, this.data.selectedFormat) });
+  noop() {},
+
+  resetFilters() {
+    this.setData({
+      filterName: '', filterRulesText: '', filterType: '', filterSet: '',
+      filterRarity: [], filterColors: [], filterFormat: '', filterArtist: '',
+      filterLang: 'any', filterCmcOp: '=', filterCmcVal: '',
+      hasActiveFilters: false,
+      filterFormatIndex: 0, filterFormatLabel: '不限赛制 (All Formats)',
+      filterLangIndex: 0, filterLangLabel: '所有语言 (All Languages)'
+    });
   },
 
-  selectFormat(e) {
-    const format = e.currentTarget.dataset.format;
-    const val = this.data.selectedFormat === format ? '' : format;
-    this.setData({ selectedFormat: val, hasActiveFilters: this._checkActive(this.data.selectedColors, this.data.selectedRarity, val) });
-  },
-
-  clearFilters() {
-    this.setData({ selectedColors: [], selectedRarity: '', selectedFormat: '', hasActiveFilters: false });
-  },
-
-  _checkActive(colors, rarity, format) {
-    return (colors && colors.length > 0) || !!rarity || !!format;
+  applyFilters() {
+    var active = this.data.filterColors.length > 0 || this.data.filterRarity.length > 0 ||
+      !!this.data.filterFormat || !!this.data.filterName || !!this.data.filterRulesText ||
+      !!this.data.filterType || !!this.data.filterSet || !!this.data.filterArtist ||
+      !!this.data.filterCmcVal;
+    this.setData({ showFilterSheet: false, hasActiveFilters: active, cards: [], currentPage: 1 });
+    this.doSearch();
   }
 });

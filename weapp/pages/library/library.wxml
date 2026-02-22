@@ -1,153 +1,227 @@
-<view class="page-library">
+<!-- Library Page: matches React library.tsx 1:1 -->
+<view class="lib-page">
 
-  <!-- ===== 顶部标题 + 游戏切换 ===== -->
+  <!-- Header: title + 高级筛选 button -->
   <view class="lib-header">
-    <text class="page-title">{{currentGame === 'fab' ? 'FAB 卡库' : '卡牌库'}}</text>
-    <view class="header-actions">
-      <view class="game-switch-btn" bindtap="toggleGame">
-        <text class="game-switch-text">{{currentGame === 'fab' ? 'FAB' : 'MTG'}}</text>
-        <text style="font-size: 20rpx; margin-left: 6rpx; color: #8a7a5a;">⇄</text>
-      </view>
-      <view wx:if="{{currentGame === 'mtg'}}" class="filter-btn" bindtap="toggleFilters">
-        <text class="filter-btn-text">筛选</text>
-        <text wx:if="{{hasActiveFilters}}" class="filter-dot"></text>
-      </view>
+    <text class="lib-title">{{currentGame === 'fab' ? 'FAB 卡库' : '卡牌库'}}</text>
+    <view wx:if="{{currentGame === 'mtg'}}" class="filter-sheet-btn {{hasActiveFilters ? 'filter-active' : ''}}" bindtap="openFilterSheet">
+      <text class="filter-sheet-btn-icon">⊞</text>
+      <text class="filter-sheet-btn-text">高级筛选</text>
+      <view wx:if="{{hasActiveFilters}}" class="filter-dot"></view>
     </view>
   </view>
 
-  <!-- ===== 搜索框 ===== -->
-  <view class="px-container">
-    <view class="search-bar">
-      <text class="search-icon">🔍</text>
+  <!-- Search input -->
+  <view class="lib-search-wrap">
+    <view class="lib-search-bar">
       <input
-        class="search-input"
+        class="lib-search-input"
         type="text"
-        placeholder="{{currentGame === 'fab' ? '搜索FAB卡牌...' : '搜索MTG卡牌（中文 / EN）...'}}"
-        placeholder-style="color: #8a7a5a; font-size: 28rpx;"
+        placeholder="{{currentGame === 'fab' ? '搜索 FAB 卡牌名称...' : '搜索卡牌名称或自然语言描述 (如：3费以下绿色生物)...'}}"
+        placeholder-style="color: #a89a7a; font-size: 26rpx;"
         value="{{searchQuery}}"
         bindinput="onSearchInput"
         bindconfirm="onSearch"
         confirm-type="search"
       />
-      <view wx:if="{{searchQuery}}" class="search-clear" bindtap="clearSearch">
-        <text style="font-size: 28rpx; color: #8a7a5a;">✕</text>
-      </view>
-    </view>
-
-    <!-- 结果数量 -->
-    <view wx:if="{{searched && !loading}}" class="results-info">
-      <text class="results-text">找到 {{totalCards}} 张卡牌</text>
-    </view>
-  </view>
-
-  <!-- ===== 筛选面板 ===== -->
-  <view wx:if="{{showFilters}}" class="filters-panel px-container">
-    <view class="filters-card">
-      <!-- 颜色 -->
-      <view class="filter-section">
-        <text class="filter-label">颜色</text>
-        <view class="color-row">
-          <view
-            wx:for="{{colorOptions}}"
-            wx:key="code"
-            class="color-btn {{selectedColors.indexOf(item.code) >= 0 ? 'selected' : ''}}"
-            style="background-color: {{item.color}};"
-            data-code="{{item.code}}"
-            bindtap="toggleColor"
-          >
-            <text wx:if="{{selectedColors.indexOf(item.code) >= 0}}" style="color: white; font-size: 24rpx; font-weight: bold; text-shadow: 0 1rpx 2rpx rgba(0,0,0,0.6);">✓</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- 稀有度 -->
-      <view class="filter-section">
-        <text class="filter-label">稀有度</text>
-        <view class="filter-tags">
-          <view
-            wx:for="{{rarityOptions}}"
-            wx:key="key"
-            class="filter-tag {{selectedRarity === item.key ? 'active' : ''}}"
-            data-rarity="{{item.key}}"
-            bindtap="selectRarity"
-          >
-            {{item.label}}
-          </view>
-        </view>
-      </view>
-
-      <!-- 赛制 -->
-      <view class="filter-section">
-        <text class="filter-label">赛制</text>
-        <view class="filter-tags">
-          <view
-            wx:for="{{formatOptions}}"
-            wx:key="key"
-            class="filter-tag {{selectedFormat === item.key ? 'active' : ''}}"
-            data-format="{{item.key}}"
-            bindtap="selectFormat"
-          >
-            {{item.label}}
-          </view>
-        </view>
-      </view>
-
-      <!-- 操作按钮 -->
-      <view class="filter-actions">
-        <view class="filter-clear-btn" bindtap="clearFilters">清除</view>
-        <view class="filter-apply-btn" bindtap="onSearch">应用筛选</view>
+      <view wx:if="{{searchQuery}}" class="lib-search-clear" bindtap="clearSearch">✕</view>
+      <view wx:else class="lib-search-submit" bindtap="onSearch">
+        <text class="lib-search-filter-icon">⊛</text>
       </view>
     </view>
   </view>
 
-  <!-- ===== 加载中 ===== -->
-  <view wx:if="{{loading && cards.length === 0}}" class="loading-center">
-    <view class="loading-spinner"></view>
-    <text class="loading-text">搜索中...</text>
+  <!-- Results count + prev page -->
+  <view wx:if="{{searched && !loading && totalCards > 0}}" class="results-row">
+    <text class="results-count">发现 {{totalCards}} 张卡牌</text>
+    <view wx:if="{{currentPage > 1}}" class="page-prev-btn" bindtap="prevPage">
+      <text>‹ 上一页</text>
+    </view>
   </view>
 
-  <!-- ===== 卡片列表 ===== -->
-  <view wx:if="{{cards.length > 0}}" class="card-grid-wrap px-container">
+  <!-- Loading -->
+  <view wx:if="{{loading && cards.length === 0}}" class="lib-loading">
+    <view class="lib-spinner"></view>
+    <text class="lib-loading-text">正在搜索{{currentGame === 'fab' ? ' FAB ' : ''}}卡牌...</text>
+  </view>
+
+  <!-- Empty: no query -->
+  <view wx:if="{{!searched && !loading}}" class="lib-empty">
+    <text class="lib-empty-icon">⊛</text>
+    <text class="lib-empty-title">{{currentGame === 'fab' ? '输入关键词搜索 Flesh and Blood 卡牌' : '输入关键词搜索万智牌卡牌'}}</text>
+    <text class="lib-empty-sub">{{currentGame === 'fab' ? '支持英文卡牌名称' : '支持中文名、英文名、系列代码等'}}</text>
+  </view>
+
+  <!-- Empty: searched but no results -->
+  <view wx:if="{{searched && !loading && cards.length === 0}}" class="lib-empty">
+    <text class="lib-empty-title">未找到匹配的卡牌</text>
+    <text class="lib-empty-sub">试试其他搜索条件</text>
+  </view>
+
+  <!-- Card Grid (2-column, matches React grid-cols-2) -->
+  <view wx:if="{{cards.length > 0}}" class="card-grid">
     <view
       wx:for="{{cards}}"
       wx:key="id"
-      class="grid-card"
+      class="card-grid-item {{item.pitchBorderClass ? 'fab-border-' + item.pitchBorderClass : ''}}"
       data-id="{{item.id}}"
       bindtap="onCardTap"
     >
-      <image class="grid-card-image" src="{{item.image}}" mode="aspectFill" lazy-load />
-      <view class="grid-card-body">
-        <text class="grid-card-cn">{{item.nameCn || item.nameEn}}</text>
-        <text wx:if="{{item.nameCn}}" class="grid-card-en">{{item.nameEn}}</text>
-        <view class="grid-card-meta">
-          <text class="grid-card-set">{{item.setCode}}</text>
-          <text class="grid-card-rarity" style="color: {{item.rarityColor}};">{{item.rarityName}}</text>
+      <!-- Card image (5:7 aspect ratio) -->
+      <view class="card-img-wrap">
+        <image wx:if="{{item.image}}" class="card-img" src="{{item.image}}" mode="aspectFill" lazy-load />
+        <view wx:else class="card-img-placeholder">
+          <text class="card-img-ph-text">{{currentGame === 'fab' ? 'FAB' : 'MTG'}}</text>
         </view>
-        <text class="grid-card-price">{{item.priceCny ? '¥' + item.priceCny : (item.priceUsd ? '$' + item.priceUsd : '--')}}</text>
+      </view>
+
+      <!-- Card info -->
+      <view class="card-info">
+        <text class="card-name">{{item.nameCn || item.nameEn}}</text>
+        <!-- FAB badges -->
+        <view wx:if="{{currentGame === 'fab'}}" class="fab-badges">
+          <text wx:if="{{item.cost}}" class="fab-badge">Cost {{item.cost}}</text>
+          <text wx:if="{{item.pitch}}" class="fab-badge">Pitch {{item.pitch}}</text>
+        </view>
+        <!-- MTG meta -->
+        <view wx:if="{{currentGame === 'mtg'}}" class="card-meta">
+          <text wx:if="{{item.setCode}}" class="card-set">{{item.setCode}}</text>
+          <text wx:if="{{item.rarityName}}" class="card-rarity" style="color: {{item.rarityColor}};">{{item.rarityName}}</text>
+        </view>
+        <text class="card-price">{{item.priceCny ? '¥' + item.priceCny : (item.priceUsd ? '$' + item.priceUsd : '--')}}</text>
       </view>
     </view>
   </view>
 
-  <!-- ===== 加载更多 ===== -->
-  <view wx:if="{{hasMore && !loading}}" class="load-more-wrap px-container">
+  <!-- Load more -->
+  <view wx:if="{{hasMore && !loading}}" class="load-more-row">
     <view class="load-more-btn" bindtap="loadMore">加载更多</view>
   </view>
-  <view wx:if="{{loading && cards.length > 0}}" class="loading-center" style="padding: 32rpx 0;">
-    <view class="loading-spinner"></view>
+
+  <!-- Loading more indicator -->
+  <view wx:if="{{loading && cards.length > 0}}" class="lib-loading-more">
+    <view class="lib-spinner"></view>
   </view>
 
-  <!-- ===== 无结果 ===== -->
-  <view wx:if="{{searched && !loading && cards.length === 0}}" class="empty-state">
-    <text class="empty-icon">🔍</text>
-    <text class="empty-title">未找到相关卡牌</text>
-    <text class="empty-sub">试试其他关键词</text>
-  </view>
+  <!-- ===== Advanced Filter Bottom Sheet (matches React SheetContent) ===== -->
+  <view wx:if="{{showFilterSheet}}" class="sheet-overlay" bindtap="closeFilterSheet">
+    <view class="sheet-content" catchtap="noop">
+      <view class="sheet-handle"></view>
 
-  <!-- ===== 初始提示 ===== -->
-  <view wx:if="{{!searched && !loading}}" class="empty-state">
-    <text class="empty-icon">🃏</text>
-    <text class="empty-title">搜索{{currentGame === 'fab' ? 'FAB' : 'MTG'}}卡牌</text>
-    <text class="empty-sub">支持中文名称 / 英文名称</text>
+      <!-- Sheet header -->
+      <view class="sheet-header">
+        <text class="sheet-title">高级筛选</text>
+      </view>
+
+      <!-- Scrollable filter body -->
+      <scroll-view class="sheet-body" scroll-y>
+
+        <!-- 卡牌名称 -->
+        <view class="filter-group">
+          <text class="filter-group-label">卡牌名称 Card Name</text>
+          <input class="filter-input" placeholder="输入卡牌名称 (支持中/英/日)" value="{{filterName}}" bindinput="onFilterNameInput" />
+        </view>
+
+        <!-- 规则叙述 -->
+        <view class="filter-group">
+          <text class="filter-group-label">规则叙述 Rules Text</text>
+          <input class="filter-input" placeholder="输入卡牌规则关键词" value="{{filterRulesText}}" bindinput="onFilterRulesTextInput" />
+        </view>
+
+        <!-- 类别 -->
+        <view class="filter-group">
+          <text class="filter-group-label">类别 Type</text>
+          <input class="filter-input" placeholder="例如: creature, instant, legendary..." value="{{filterType}}" bindinput="onFilterTypeInput" />
+        </view>
+
+        <!-- 系列 -->
+        <view class="filter-group">
+          <text class="filter-group-label">系列 Set / Expansion</text>
+          <input class="filter-input" placeholder="输入系列代码 (如: MH3, LTR, DMU)" value="{{filterSet}}" bindinput="onFilterSetInput" />
+        </view>
+
+        <!-- 稀有度 -->
+        <view class="filter-group">
+          <text class="filter-group-label">稀有度 Rarity</text>
+          <view class="rarity-grid">
+            <view
+              wx:for="{{rarityOptions}}"
+              wx:key="key"
+              class="rarity-row"
+              data-key="{{item.key}}"
+              bindtap="toggleFilterRarity"
+            >
+              <view class="rarity-check {{filterRarity.indexOf(item.key) >= 0 ? 'rarity-checked' : ''}}">
+                <text wx:if="{{filterRarity.indexOf(item.key) >= 0}}" class="rarity-check-mark">✓</text>
+              </view>
+              <view class="rarity-dot" style="background: {{item.dot}};"></view>
+              <text class="rarity-label">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 颜色 -->
+        <view class="filter-group">
+          <text class="filter-group-label">颜色 Color</text>
+          <view class="color-picker-row">
+            <view
+              wx:for="{{colorOptions}}"
+              wx:key="code"
+              class="color-circle {{filterColors.indexOf(item.code) >= 0 ? 'color-selected' : ''}}"
+              style="background: {{item.bg}};"
+              data-code="{{item.code}}"
+              bindtap="toggleFilterColor"
+            >
+              <text class="color-label {{item.dark ? 'color-label-light' : 'color-label-dark'}}">{{item.label}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 法术力费用 CMC -->
+        <view class="filter-group">
+          <text class="filter-group-label">法术力费用 CMC</text>
+          <view class="cmc-row">
+            <picker class="cmc-op-picker" mode="selector" range="{{cmcOps}}" value="{{cmcOps.indexOf(filterCmcOp)}}" bindchange="selectFilterCmcOp">
+              <view class="cmc-op-btn">{{filterCmcOp}} ▾</view>
+            </picker>
+            <input class="cmc-val-input" type="number" placeholder="数值" value="{{filterCmcVal}}" bindinput="onFilterCmcValInput" />
+          </view>
+        </view>
+
+        <!-- 赛制合法性 -->
+        <view class="filter-group">
+          <text class="filter-group-label">赛制合法性 Format</text>
+          <picker class="format-picker" mode="selector" range="{{formatOptions}}" range-key="label" value="{{filterFormatIndex}}" bindchange="selectFilterFormat">
+            <view class="format-picker-btn">
+              {{filterFormatLabel}} ▾
+            </view>
+          </picker>
+        </view>
+
+        <!-- 画师 -->
+        <view class="filter-group">
+          <text class="filter-group-label">画师 Artist</text>
+          <input class="filter-input" placeholder="输入画师姓名" value="{{filterArtist}}" bindinput="onFilterArtistInput" />
+        </view>
+
+        <!-- 语言 -->
+        <view class="filter-group" style="padding-bottom: 64rpx;">
+          <text class="filter-group-label">语言 Language</text>
+          <picker class="format-picker" mode="selector" range="{{langOptions}}" range-key="label" value="{{filterLangIndex}}" bindchange="selectFilterLang">
+            <view class="format-picker-btn">
+              {{filterLangLabel}} ▾
+            </view>
+          </picker>
+        </view>
+
+      </scroll-view>
+
+      <!-- Sheet footer buttons -->
+      <view class="sheet-footer">
+        <view class="sheet-reset-btn" bindtap="resetFilters">重置 Clear</view>
+        <view class="sheet-apply-btn" bindtap="applyFilters">开始搜索 Search</view>
+      </view>
+    </view>
   </view>
 
 </view>

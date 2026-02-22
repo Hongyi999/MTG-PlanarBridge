@@ -1,204 +1,215 @@
-<view class="page-home">
+<!-- Home Page: 1:1 replica of React home.tsx + App.tsx Layout -->
+<view class="page-container" bindtap="closeGameMenu">
 
-  <!-- ===== 顶部标题栏 ===== -->
-  <view class="page-header">
-    <text class="page-title">{{currentGame === 'fab' ? '发现 · FAB' : '发现'}}</text>
-    <view wx:if="{{currentGame === 'fab'}}" class="header-icon-box">
-      <text style="font-size: 36rpx;">⚔️</text>
-    </view>
-  </view>
-
-  <!-- ===== 搜索框 ===== -->
-  <view class="px-container">
-    <view class="search-bar">
-      <text class="search-icon">🔍</text>
-      <input
-        class="search-input"
-        type="text"
-        placeholder="{{currentGame === 'fab' ? '搜索 Flesh and Blood 卡牌...' : '搜索卡牌、系列或规则...'}}"
-        placeholder-style="color: #8a7a5a; font-size: 28rpx;"
-        value="{{searchQuery}}"
-        bindinput="onSearchInput"
-        bindconfirm="onSearch"
-        confirm-type="search"
-      />
-    </view>
-  </view>
-
-  <!-- ===== 快速入口 (共用) ===== -->
-  <view class="quick-actions px-container">
-    <view class="action-card" bindtap="goPriceLists">
-      <view class="action-icon-box action-icon-primary">
-        <text style="font-size: 36rpx;">📋</text>
+  <!-- ===== Sticky Header with Game Selector (matches React Layout header) ===== -->
+  <view class="sticky-header">
+    <view class="game-selector-wrap" catchtap="toggleGameMenu">
+      <view class="game-selector-btn">
+        <text class="game-selector-icon">{{currentGame === 'fab' ? 'FAB' : 'MTG'}}</text>
+        <text class="game-chevron {{showGameMenu ? 'chevron-up' : ''}}">▾</text>
       </view>
-      <view style="flex: 1;">
-        <text class="action-title">价格列表</text>
-        <text class="action-desc">管理与导出</text>
-      </view>
-      <text style="color: #8a7a5a; font-size: 32rpx;">›</text>
-    </view>
-    <view class="action-card" bindtap="goHistory">
-      <view class="action-icon-box action-icon-orange">
-        <text style="font-size: 36rpx;">🕐</text>
-      </view>
-      <view style="flex: 1;">
-        <text class="action-title">浏览足迹</text>
-        <text class="action-desc">查询历史</text>
-      </view>
-      <text style="color: #8a7a5a; font-size: 32rpx;">›</text>
-    </view>
-  </view>
-
-  <!-- =============== FAB 模式内容 =============== -->
-  <block wx:if="{{currentGame === 'fab'}}">
-
-    <!-- FAB 英雄职业 -->
-    <view class="section px-container">
-      <view class="section-header">
-        <text style="font-size: 32rpx; margin-right: 8rpx;">⚔️</text>
-        <text class="section-title">英雄职业</text>
-      </view>
-      <view class="fab-class-grid">
+      <!-- Dropdown -->
+      <view wx:if="{{showGameMenu}}" class="game-dropdown" catchtap="noop">
         <view
-          wx:for="{{fabClasses}}"
-          wx:key="name"
-          class="fab-class-cell"
-          style="border-color: {{item.color}}33; background-color: {{item.color}}0D;"
-          data-name="{{item.name}}"
-          bindtap="onFabClassTap"
+          wx:for="{{games}}"
+          wx:key="key"
+          class="game-option {{currentGame === item.key ? 'game-option-active' : ''}}"
+          data-key="{{item.key}}"
+          catchtap="selectGame"
         >
-          <text class="fab-class-cn" style="color: {{item.color}};">{{item.cn}}</text>
-          <text class="fab-class-en">{{item.name}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- FAB 赛制 -->
-    <view class="section px-container">
-      <view class="section-header">
-        <text style="font-size: 32rpx; margin-right: 8rpx;">🛡️</text>
-        <text class="section-title">赛制</text>
-      </view>
-      <view class="format-grid">
-        <view
-          wx:for="{{fabFormats}}"
-          wx:key="name"
-          class="format-cell"
-        >
-          <text class="format-cell-label">{{item.name}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- FAB 介绍卡片 -->
-    <view class="section px-container">
-      <view class="fab-intro-card">
-        <text class="fab-intro-title">关于 Flesh and Blood</text>
-        <text class="fab-intro-text">Flesh and Blood 是一款由 Legend Story Studios 出品的动作卡牌游戏。玩家扮演英雄，在回合制对战中使用技能、武器和装备牌。</text>
-        <view class="fab-intro-link" bindtap="goFabLibrary">
-          <text style="font-size: 24rpx;">🔍</text>
-          <text class="fab-intro-link-text">开始搜索 FAB 卡牌</text>
-        </view>
-      </view>
-    </view>
-
-  </block>
-
-  <!-- =============== MTG 模式内容 =============== -->
-  <block wx:else>
-
-    <!-- 市场动向 -->
-    <view class="section px-container">
-      <view class="section-header">
-        <text style="font-size: 32rpx; margin-right: 8rpx;">📈</text>
-        <text class="section-title">市场动向 (CN)</text>
-      </view>
-
-      <view wx:if="{{hotLoading}}" class="loading-container">
-        <view class="loading-spinner"></view>
-        <text class="loading-text">加载中...</text>
-      </view>
-
-      <view wx:elif="{{hotCards.length === 0}}" class="empty-state" style="padding: 48rpx 0;">
-        <text class="empty-icon">📊</text>
-        <text class="empty-text">暂无数据，下拉刷新重试</text>
-      </view>
-
-      <view wx:else>
-        <view
-          wx:for="{{hotCards}}"
-          wx:key="id"
-          class="market-row"
-          data-id="{{item.id}}"
-          bindtap="onCardTap"
-        >
-          <image class="market-avatar" src="{{item.image}}" mode="aspectFill" lazy-load />
-          <view class="market-info">
-            <text class="market-name-cn">{{item.nameCn || item.nameEn}}</text>
-            <text class="market-name-en">{{item.nameEn}}</text>
-          </view>
-          <view class="market-price-col">
-            <text class="market-price-cny">{{item.priceCny ? '¥' + item.priceCny : '--'}}</text>
-            <text class="market-price-usd">{{item.priceUsd ? '$' + item.priceUsd : ''}}</text>
+          <text class="game-opt-icon {{currentGame === item.key ? 'game-opt-active' : 'game-opt-muted'}}">{{item.icon}}</text>
+          <view>
+            <text class="game-opt-cn {{currentGame === item.key ? 'game-opt-active' : ''}}">{{item.nameCn}}</text>
+            <text class="game-opt-en">{{item.name}}</text>
           </view>
         </view>
       </view>
     </view>
 
-    <!-- 社区热门 -->
-    <view class="section">
-      <view class="section-header px-container">
-        <text style="font-size: 32rpx; margin-right: 8rpx;">🔥</text>
-        <text class="section-title">社区热门</text>
-      </view>
+    <view class="header-ornament">
+      <view class="orn-dot"></view>
+      <view class="orn-dot"></view>
+      <view class="orn-dot"></view>
+      <view class="orn-sep"></view>
+      <view class="orn-ring"></view>
+    </view>
+  </view>
 
-      <view wx:if="{{recentLoading}}" class="loading-container">
-        <view class="loading-spinner"></view>
-      </view>
+  <!-- ===== Main Page Body ===== -->
+  <view class="page-body">
 
-      <scroll-view wx:else scroll-x class="card-h-scroll" show-scrollbar="{{false}}">
-        <view class="card-h-inner">
+    <!-- Search Bar -->
+    <view class="search-section">
+      <view class="search-bar-inner">
+        <text class="search-bar-icon">🔍</text>
+        <input
+          class="search-bar-input"
+          type="text"
+          placeholder="{{currentGame === 'fab' ? '搜索 Flesh and Blood 卡牌...' : '搜索卡牌、系列或规则...'}}"
+          placeholder-style="color: #a89a7a; font-size: 28rpx;"
+          value="{{searchQuery}}"
+          bindinput="onSearchInput"
+          bindconfirm="onSearch"
+          confirm-type="search"
+        />
+      </view>
+    </view>
+
+    <!-- Quick Actions grid -->
+    <view class="quick-grid">
+      <view class="quick-card" bindtap="goPriceLists">
+        <view class="quick-icon-box quick-icon-primary">
+          <text class="quick-icon-text">≡</text>
+        </view>
+        <view class="quick-text-col">
+          <text class="quick-title">价格列表</text>
+          <text class="quick-desc">管理与导出</text>
+        </view>
+      </view>
+      <view class="quick-card" bindtap="goHistory">
+        <view class="quick-icon-box quick-icon-orange">
+          <text class="quick-icon-text">◷</text>
+        </view>
+        <view class="quick-text-col">
+          <text class="quick-title">浏览足迹</text>
+          <text class="quick-desc">查询历史</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ======== FAB Mode ======== -->
+    <block wx:if="{{currentGame === 'fab'}}">
+
+      <!-- Hero Classes -->
+      <view class="section-block">
+        <view class="section-label-row">
+          <text class="section-label-icon">⚔️</text>
+          <text class="section-label-text">英雄职业</text>
+        </view>
+        <view class="fab-class-grid">
           <view
-            wx:for="{{recentCards}}"
+            wx:for="{{fabClasses}}"
+            wx:key="name"
+            class="fab-class-item {{item.colorClass}}"
+            data-name="{{item.name}}"
+            bindtap="onFabClassTap"
+          >
+            <text class="fab-class-cn">{{item.cn}}</text>
+            <text class="fab-class-en">{{item.name}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- FAB Formats -->
+      <view class="section-block">
+        <view class="section-label-row">
+          <text class="section-label-icon">🛡️</text>
+          <text class="section-label-text">赛制</text>
+        </view>
+        <view class="format-grid">
+          <view wx:for="{{fabFormats}}" wx:key="*this" class="format-cell">
+            <text class="format-cell-text">{{item}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- FAB Intro Card -->
+      <view class="section-block">
+        <view class="fab-intro-panel">
+          <text class="fab-intro-title">关于 Flesh and Blood</text>
+          <text class="fab-intro-body">Flesh and Blood 是一款由 Legend Story Studios 出品的动作卡牌游戏。玩家扮演英雄，在回合制对战中使用技能、武器和装备牌。</text>
+          <view class="fab-intro-link" bindtap="goFabLibrary">
+            <text class="fab-link-icon">🔍</text>
+            <text class="fab-link-text">开始搜索 FAB 卡牌</text>
+          </view>
+        </view>
+      </view>
+
+    </block>
+
+    <!-- ======== MTG Mode ======== -->
+    <block wx:else>
+
+      <!-- 市场动向 -->
+      <view class="section-block">
+        <view class="section-label-row">
+          <text class="section-label-icon">📈</text>
+          <text class="section-label-text">市场动向 (CN)</text>
+        </view>
+
+        <view wx:if="{{hotLoading}}" class="loading-box">
+          <view class="loading-spinner"></view>
+        </view>
+
+        <view wx:elif="{{hotCards.length === 0}}" class="empty-mini">
+          <text>暂无数据，下拉刷新</text>
+        </view>
+
+        <view wx:else class="market-list">
+          <view
+            wx:for="{{hotCards}}"
             wx:key="id"
-            class="h-card"
+            class="market-row"
             data-id="{{item.id}}"
             bindtap="onCardTap"
           >
-            <image class="h-card-image" src="{{item.image}}" mode="aspectFill" lazy-load />
-            <view class="h-card-info">
+            <view class="market-avatar-wrap">
+              <image class="market-avatar-img" src="{{item.image}}" mode="aspectFill" lazy-load />
+            </view>
+            <view class="market-info-col">
+              <text class="market-name">{{item.nameCn || item.nameEn}}</text>
+              <text class="market-name-en">{{item.nameEn}}</text>
+            </view>
+            <view class="market-price-col">
+              <text class="market-price-main">{{item.priceCny ? '¥' + item.priceCny : item.priceUsd ? '$' + item.priceUsd : 'N/A'}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 社区热门 horizontal scroll -->
+      <view class="section-block-nopx">
+        <view class="section-label-row-px">
+          <text class="section-label-icon">🔥</text>
+          <text class="section-label-text">社区热门</text>
+        </view>
+        <view wx:if="{{recentLoading}}" class="loading-box">
+          <view class="loading-spinner"></view>
+        </view>
+        <scroll-view wx:else scroll-x show-scrollbar="{{false}}" class="h-scroll-view">
+          <view class="h-scroll-inner">
+            <view
+              wx:for="{{recentCards}}"
+              wx:key="id"
+              class="h-card"
+              data-id="{{item.id}}"
+              bindtap="onCardTap"
+            >
+              <image class="h-card-img" src="{{item.image}}" mode="aspectFill" lazy-load />
               <text class="h-card-name">{{item.nameCn || item.nameEn}}</text>
               <text class="h-card-price">{{item.priceCny ? '¥' + item.priceCny : '--'}}</text>
             </view>
           </view>
-          <view wx:if="{{recentCards.length === 0}}" class="h-card-empty">
-            <text style="color: #8a7a5a; font-size: 24rpx;">暂无数据</text>
+        </scroll-view>
+      </view>
+
+      <!-- 赛制 format grid -->
+      <view class="section-block">
+        <view class="format-grid">
+          <view
+            wx:for="{{formats}}"
+            wx:key="name"
+            class="format-cell"
+            data-query="{{item.query}}"
+            bindtap="onFormatTap"
+          >
+            <text class="format-cell-text">{{item.name}}</text>
           </view>
         </view>
-      </scroll-view>
-    </view>
-
-    <!-- 赛制快速入口 -->
-    <view class="section px-container">
-      <view class="section-header">
-        <text style="font-size: 32rpx; margin-right: 8rpx;">⚡</text>
-        <text class="section-title">快速赛制</text>
       </view>
-      <view class="format-grid">
-        <view
-          wx:for="{{formats}}"
-          wx:key="key"
-          class="format-cell"
-          data-query="{{item.query}}"
-          bindtap="onFormatTap"
-        >
-          <text class="format-cell-label">{{item.name}}</text>
-        </view>
-      </view>
-    </view>
 
-  </block>
+    </block>
 
-  <view style="height: 32rpx;"></view>
-
+    <view style="height: 48rpx;"></view>
+  </view>
 </view>

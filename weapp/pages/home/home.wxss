@@ -1,83 +1,182 @@
-/* ======================================
-   Home Page — 发现 (Light Fantasy Heritage)
-   ====================================== */
+/* Home Page Styles — matching React App.tsx + home.tsx */
 
-.page-home {
-  background-color: #f7f4f0;
+.page-container {
   min-height: 100vh;
-  padding-bottom: 40rpx;
+  background: #f7f4f0;
 }
 
-/* ---- Header ---- */
-.page-header {
+/* Sticky Header */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  height: 100rpx;
+  background: rgba(247, 244, 240, 0.95);
+  border-bottom: 1rpx solid #e8e0d4;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 48rpx 32rpx 8rpx;
-}
-
-.page-title {
-  font-size: 56rpx;
-  font-weight: 700;
-  color: #1a1a0a;
-  letter-spacing: 2rpx;
-}
-
-/* ---- Padding wrapper ---- */
-.px-container {
   padding: 0 32rpx;
 }
 
-/* ---- Search Bar ---- */
-.search-bar {
+/* Game Selector */
+.game-selector-wrap { position: relative; }
+
+.game-selector-btn {
   display: flex;
   align-items: center;
-  background-color: #ffffff;
-  border-radius: 24rpx;
-  padding: 20rpx 24rpx;
-  margin: 16rpx 0 24rpx;
-  border: 1rpx solid rgba(139, 105, 20, 0.15);
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid rgba(139, 105, 20, 0.2);
+  background: rgba(255, 255, 255, 0.5);
 }
 
-.search-icon {
-  font-size: 32rpx;
-  margin-right: 16rpx;
-  opacity: 0.6;
+.game-selector-icon {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #8b6914;
+  letter-spacing: 2rpx;
 }
 
-.search-input {
-  flex: 1;
-  color: #1a1a0a;
-  font-size: 28rpx;
-  height: 48rpx;
-  line-height: 48rpx;
+.game-chevron {
+  font-size: 20rpx;
+  color: #8a7a5a;
+  display: inline-block;
+  transition: transform 0.2s;
 }
 
-/* ---- Quick Actions ---- */
-.quick-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  margin-bottom: 32rpx;
-}
+.chevron-up { transform: rotate(180deg); }
 
-.action-card {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  padding: 28rpx;
+.game-dropdown {
+  position: absolute;
+  top: 80rpx;
+  left: 0;
   background: #ffffff;
   border: 1rpx solid #e8e0d4;
   border-radius: 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8rpx 32rpx rgba(0,0,0,0.12);
+  z-index: 100;
+  min-width: 320rpx;
+  overflow: hidden;
 }
 
-.action-card:active {
-  background: rgba(139, 105, 20, 0.04);
+.game-option {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 24rpx 32rpx;
 }
 
-.action-icon-box {
+.game-option:active { background: rgba(237, 232, 224, 0.5); }
+.game-option-active { background: rgba(139, 105, 20, 0.08); }
+
+.game-opt-icon {
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  min-width: 60rpx;
+}
+
+.game-opt-active { color: #8b6914; }
+.game-opt-muted { color: #8a7a5a; }
+
+.game-opt-cn {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #1a1a0a;
+  display: block;
+}
+
+.game-opt-en {
+  font-size: 20rpx;
+  color: #8a7a5a;
+  display: block;
+  margin-top: 2rpx;
+}
+
+/* Header ornament */
+.header-ornament {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  background: rgba(0,0,0,0.05);
+  border-radius: 40rpx;
+  padding: 10rpx 24rpx;
+  border: 1rpx solid rgba(0,0,0,0.06);
+}
+
+.orn-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: rgba(26,26,10,0.2);
+}
+
+.orn-sep {
+  width: 2rpx;
+  height: 24rpx;
+  background: #e8e0d4;
+  margin: 0 6rpx;
+}
+
+.orn-ring {
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 50%;
+  border: 3rpx solid rgba(26,26,10,0.3);
+}
+
+/* Page Body */
+.page-body { padding: 24rpx 32rpx 0; }
+
+/* Search Bar */
+.search-section { margin-bottom: 24rpx; }
+
+.search-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  background: rgba(255,255,255,0.5);
+  border: 1rpx solid rgba(139,105,20,0.2);
+  border-radius: 24rpx;
+  padding: 20rpx 28rpx;
+}
+
+.search-bar-icon { font-size: 28rpx; color: #8a7a5a; }
+
+.search-bar-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1a1a0a;
+  background: transparent;
+}
+
+/* Quick Actions */
+.quick-grid {
+  display: flex;
+  gap: 24rpx;
+  margin-bottom: 32rpx;
+}
+
+.quick-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 28rpx 24rpx;
+  background: #ffffff;
+  border: 1rpx solid #e8e0d4;
+  border-radius: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.quick-card:active {
+  background: rgba(139,105,20,0.04);
+  border-color: rgba(139,105,20,0.3);
+}
+
+.quick-icon-box {
   width: 72rpx;
   height: 72rpx;
   border-radius: 16rpx;
@@ -87,210 +186,50 @@
   flex-shrink: 0;
 }
 
-.action-icon-primary { background: rgba(139, 105, 20, 0.1); }
-.action-icon-orange  { background: rgba(234, 88, 12, 0.1); }
+.quick-icon-primary { background: rgba(139,105,20,0.1); }
+.quick-icon-orange  { background: rgba(234,88,12,0.1); }
 
-.action-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1a1a0a;
-  display: block;
-}
+.quick-icon-text { font-size: 36rpx; }
+.quick-icon-primary .quick-icon-text { color: #8b6914; }
+.quick-icon-orange .quick-icon-text  { color: #ea580c; }
 
-.action-desc {
-  font-size: 22rpx;
-  color: #8a7a5a;
-  margin-top: 4rpx;
-  display: block;
-}
+.quick-text-col { display: flex; flex-direction: column; }
+.quick-title { font-size: 26rpx; font-weight: 600; color: #1a1a0a; }
+.quick-desc  { font-size: 20rpx; color: #8a7a5a; margin-top: 4rpx; }
 
-/* ---- Section ---- */
-.section {
-  margin-bottom: 32rpx;
-}
+/* Section Blocks */
+.section-block { margin-bottom: 32rpx; }
+.section-block-nopx { margin-bottom: 32rpx; }
 
-.section-header {
+.section-label-row {
   display: flex;
   align-items: center;
-  margin-bottom: 16rpx;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
 }
 
-.section-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #8b6914;
-}
-
-/* ---- Market Rows (市场动向) ---- */
-.market-row {
+.section-label-row-px {
   display: flex;
   align-items: center;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #f0ece4;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
+  padding: 0 32rpx;
 }
 
-.market-row:last-child { border-bottom: none; }
-.market-row:active { opacity: 0.7; }
+.section-label-icon { font-size: 32rpx; }
+.section-label-text { font-size: 32rpx; font-weight: 600; color: #1a1a0a; }
 
-.market-avatar {
-  width: 72rpx;
-  height: 100rpx;
-  border-radius: 8rpx;
-  background-color: #ede8e0;
-  flex-shrink: 0;
-  margin-right: 20rpx;
-}
-
-.market-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.market-name-cn {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1a1a0a;
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.market-name-en {
-  font-size: 22rpx;
-  color: #8a7a5a;
-  display: block;
-  margin-top: 4rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.market-price-col {
-  text-align: right;
-  margin-left: 16rpx;
-  flex-shrink: 0;
-}
-
-.market-price-cny {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #8b6914;
-  display: block;
-  font-family: 'Menlo', monospace;
-}
-
-.market-price-usd {
-  font-size: 20rpx;
-  color: #8a7a5a;
-  display: block;
-  margin-top: 2rpx;
-  font-family: 'Menlo', monospace;
-}
-
-/* ---- Horizontal Cards (社区热门) ---- */
-.card-h-scroll {
-  width: 100%;
-  white-space: nowrap;
-}
-
-.card-h-inner {
-  display: inline-flex;
-  gap: 20rpx;
-  padding: 0 32rpx 12rpx;
-}
-
-.h-card {
-  display: inline-flex;
-  flex-direction: column;
-  width: 220rpx;
-  flex-shrink: 0;
-  background: #ffffff;
-  border-radius: 16rpx;
-  overflow: hidden;
-  border: 1rpx solid #e8e0d4;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
-}
-
-.h-card:active { opacity: 0.8; }
-
-.h-card-image {
-  width: 220rpx;
-  height: 308rpx;
-  background-color: #ede8e0;
-}
-
-.h-card-info {
-  padding: 12rpx 14rpx 14rpx;
-  white-space: normal;
-}
-
-.h-card-name {
-  font-size: 22rpx;
-  font-weight: 600;
-  color: #1a1a0a;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: 1.4;
-}
-
-.h-card-price {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: #8b6914;
-  display: block;
-  margin-top: 6rpx;
-  font-family: 'Menlo', monospace;
-}
-
-.h-card-empty {
-  display: inline-flex;
-  align-items: center;
+/* Loading */
+.loading-box {
+  display: flex;
   justify-content: center;
-  width: 300rpx;
-  height: 200rpx;
-}
-
-/* ---- Format Grid ---- */
-.format-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-}
-
-.format-cell {
-  padding: 16rpx 28rpx;
-  background: #ffffff;
-  border: 1rpx solid #e8e0d4;
-  border-radius: 20rpx;
-  box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.04);
-}
-
-.format-cell:active {
-  background: rgba(139, 105, 20, 0.08);
-  border-color: rgba(139, 105, 20, 0.25);
-}
-
-.format-cell-label {
-  font-size: 26rpx;
-  color: #8b6914;
-  font-weight: 500;
-}
-
-/* ---- Loading / Empty ---- */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48rpx 0;
+  padding: 64rpx 0;
 }
 
 .loading-spinner {
   width: 48rpx;
   height: 48rpx;
-  border: 4rpx solid rgba(139, 105, 20, 0.2);
+  border: 4rpx solid rgba(139,105,20,0.2);
   border-top: 4rpx solid #8b6914;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -301,106 +240,194 @@
   to   { transform: rotate(360deg); }
 }
 
-.loading-text {
+.empty-mini {
+  text-align: center;
+  padding: 48rpx 0;
   color: #8a7a5a;
   font-size: 26rpx;
-  margin-top: 16rpx;
 }
 
-.empty-state {
+/* Market Rows */
+.market-list { display: flex; flex-direction: column; gap: 16rpx; }
+
+.market-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  padding: 24rpx;
+  background: #ffffff;
+  border: 1rpx solid #e8e0d4;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
 }
 
-.empty-icon {
-  font-size: 72rpx;
-  opacity: 0.3;
-  margin-bottom: 16rpx;
-}
+.market-row:active { background: rgba(139,105,20,0.03); }
 
-.empty-text {
-  color: #8a7a5a;
-  font-size: 28rpx;
-}
-
-/* ---- Header icon box ---- */
-.header-icon-box {
-  width: 64rpx;
-  height: 64rpx;
+.market-avatar-wrap {
+  width: 72rpx;
+  height: 72rpx;
   border-radius: 50%;
-  background: rgba(139, 105, 20, 0.1);
+  overflow: hidden;
+  border: 1rpx solid #e8e0d4;
+  flex-shrink: 0;
+}
+
+.market-avatar-img { width: 100%; height: 100%; }
+
+.market-info-col { flex: 1; padding: 0 20rpx; }
+
+.market-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #1a1a0a;
+  display: block;
+}
+
+.market-name-en {
+  font-size: 22rpx;
+  color: #8a7a5a;
+  display: block;
+  margin-top: 4rpx;
+}
+
+.market-price-col { text-align: right; }
+
+.market-price-main {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1a0a;
+  font-family: 'Menlo', monospace;
+}
+
+/* Horizontal Scroll */
+.h-scroll-view { width: 100%; padding-bottom: 16rpx; }
+
+.h-scroll-inner {
+  display: flex;
+  padding: 0 32rpx;
+  gap: 24rpx;
+  width: max-content;
+}
+
+.h-card { width: 200rpx; display: flex; flex-direction: column; }
+.h-card:active { opacity: 0.8; }
+
+.h-card-img {
+  width: 200rpx;
+  height: 280rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #e8e0d4;
+}
+
+.h-card-name {
+  font-size: 22rpx;
+  font-weight: 500;
+  color: #1a1a0a;
+  margin-top: 10rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.h-card-price {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #8b6914;
+  font-family: 'Menlo', monospace;
+  margin-top: 4rpx;
+}
+
+/* Format Grid */
+.format-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+}
+
+.format-cell {
+  height: 100rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #ffffff;
+  border: 1rpx solid #e8e0d4;
+  border-radius: 16rpx;
 }
 
-/* ---- FAB Hero Class Grid ---- */
+.format-cell:active {
+  background: rgba(139,105,20,0.05);
+  border-color: rgba(139,105,20,0.3);
+  color: #8b6914;
+}
+
+.format-cell-text {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #8a7a5a;
+}
+
+/* FAB Classes */
 .fab-class-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 16rpx;
 }
 
-.fab-class-cell {
-  width: calc(50% - 8rpx);
+.fab-class-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 24rpx 20rpx;
   border: 2rpx solid;
-  border-radius: 20rpx;
-  box-sizing: border-box;
-}
-
-.fab-class-cell:active {
-  opacity: 0.7;
-}
-
-.fab-class-cn {
-  font-size: 28rpx;
-  font-weight: 700;
-}
-
-.fab-class-en {
-  font-size: 22rpx;
-  color: #8a7a5a;
-  opacity: 0.7;
-}
-
-/* ---- FAB Intro Card ---- */
-.fab-intro-card {
-  background: #ffffff;
-  border: 1rpx solid rgba(139, 105, 20, 0.2);
   border-radius: 24rpx;
-  padding: 28rpx;
+}
+
+.fab-class-item:active { opacity: 0.7; }
+
+.fab-class-cn { font-size: 28rpx; font-weight: 700; }
+.fab-class-en { font-size: 20rpx; opacity: 0.7; }
+
+.fab-class-slate { background: rgba(100,116,139,0.08); border-color: rgba(100,116,139,0.25); color: #475569; }
+.fab-class-red   { background: rgba(239,68,68,0.08);   border-color: rgba(239,68,68,0.25);   color: #b91c1c; }
+.fab-class-orange{ background: rgba(249,115,22,0.08);  border-color: rgba(249,115,22,0.25);  color: #c2410c; }
+.fab-class-blue  { background: rgba(59,130,246,0.08);  border-color: rgba(59,130,246,0.25);  color: #1d4ed8; }
+.fab-class-green { background: rgba(34,197,94,0.08);   border-color: rgba(34,197,94,0.25);   color: #15803d; }
+.fab-class-yellow{ background: rgba(234,179,8,0.08);   border-color: rgba(234,179,8,0.25);   color: #a16207; }
+.fab-class-amber { background: rgba(245,158,11,0.08);  border-color: rgba(245,158,11,0.25);  color: #b45309; }
+.fab-class-purple{ background: rgba(168,85,247,0.08);  border-color: rgba(168,85,247,0.25);  color: #7c3aed; }
+
+/* FAB Intro */
+.fab-intro-panel {
+  background: #ffffff;
+  border: 1rpx solid rgba(139,105,20,0.2);
+  border-radius: 24rpx;
+  padding: 32rpx;
 }
 
 .fab-intro-title {
+  display: block;
   font-size: 28rpx;
   font-weight: 700;
   color: #8b6914;
-  display: block;
   margin-bottom: 12rpx;
 }
 
-.fab-intro-text {
+.fab-intro-body {
+  display: block;
   font-size: 24rpx;
   color: #8a7a5a;
-  line-height: 1.6;
-  display: block;
+  line-height: 1.7;
 }
 
 .fab-intro-link {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6rpx;
-  margin-top: 16rpx;
-  padding: 8rpx 0;
+  gap: 8rpx;
+  margin-top: 20rpx;
 }
 
-.fab-intro-link-text {
+.fab-link-icon { font-size: 24rpx; }
+
+.fab-link-text {
   font-size: 24rpx;
   font-weight: 600;
   color: #8b6914;

@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "价格列表",
+  "navigationBarBackgroundColor": "#f7f4f0",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#f7f4f0",
+  "enablePullDownRefresh": true
+}

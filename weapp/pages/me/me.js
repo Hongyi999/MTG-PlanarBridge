@@ -67,13 +67,13 @@ Page({
         wx.showToast({ title: '关注功能即将上线', icon: 'none' });
         break;
       case 'priceLists':
-        wx.showToast({ title: '价格列表即将上线', icon: 'none' });
+        wx.navigateTo({ url: '/pages/price-lists/price-lists' });
         break;
       case 'history':
-        wx.showToast({ title: '浏览足迹即将上线', icon: 'none' });
+        wx.navigateTo({ url: '/pages/card-history/card-history' });
         break;
       case 'settings':
-        wx.showToast({ title: '设置即将上线', icon: 'none' });
+        wx.showToast({ title: '设置功能即将上线', icon: 'none' });
         break;
     }
   },

@@ -1,0 +1,177 @@
+<view class="pl-page">
+
+  <!-- ===== Lists View ===== -->
+  <view wx:if="{{!selectedListId}}">
+
+    <!-- Header -->
+    <view class="pl-header">
+      <text class="pl-title">价格列表</text>
+      <view class="pl-add-btn" bindtap="openCreateForm">
+        <text class="pl-add-icon">＋</text>
+        <text class="pl-add-text">新建</text>
+      </view>
+    </view>
+
+    <!-- Loading -->
+    <view wx:if="{{loading}}" class="pl-loading">
+      <view class="pl-spinner"></view>
+      <text class="pl-loading-text">加载中...</text>
+    </view>
+
+    <!-- Empty -->
+    <view wx:if="{{!loading && lists.length === 0}}" class="pl-empty">
+      <text class="pl-empty-icon">≡</text>
+      <text class="pl-empty-title">暂无价格列表</text>
+      <text class="pl-empty-sub">点击右上角新建一个列表</text>
+    </view>
+
+    <!-- Lists -->
+    <view wx:if="{{!loading && lists.length > 0}}" class="pl-list">
+      <view
+        wx:for="{{lists}}"
+        wx:key="id"
+        class="pl-list-item"
+        data-id="{{item.id}}"
+        bindtap="onListTap"
+      >
+        <view class="pl-list-icon-wrap">
+          <text class="pl-list-icon">≡</text>
+        </view>
+        <view class="pl-list-info">
+          <text class="pl-list-name">{{item.name}}</text>
+          <text class="pl-list-count">{{item.itemCount || 0}} 张卡牌</text>
+        </view>
+        <view class="pl-list-arrow">›</view>
+        <view
+          class="pl-delete-btn"
+          data-id="{{item.id}}"
+          catchtap="deleteList"
+        >
+          <text class="pl-delete-icon">✕</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- Default list hints -->
+    <view wx:if="{{!loading}}" class="pl-hints">
+      <text class="pl-hints-label">常用列表类型</text>
+      <view class="pl-hint-row">
+        <text class="pl-hint-tag">待购清单</text>
+        <text class="pl-hint-tag">出售清单</text>
+        <text class="pl-hint-tag">收藏观察</text>
+      </view>
+    </view>
+
+    <!-- Create list modal -->
+    <view wx:if="{{showCreateForm}}" class="modal-overlay" bindtap="closeCreateForm">
+      <view class="modal-box" catchtap="noop">
+        <text class="modal-title">新建价格列表</text>
+        <input
+          class="modal-input"
+          placeholder="列表名称 (如：待购清单)"
+          value="{{newListName}}"
+          bindinput="onNewListNameInput"
+          focus
+        />
+        <view class="modal-btns">
+          <view class="modal-cancel" bindtap="closeCreateForm">取消</view>
+          <view class="modal-confirm" bindtap="createList">创建</view>
+        </view>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- ===== Items View ===== -->
+  <view wx:if="{{selectedListId}}">
+
+    <!-- Back header -->
+    <view class="pl-items-header">
+      <view class="pl-back-btn" bindtap="goBack">
+        <text class="pl-back-icon">‹</text>
+        <text class="pl-back-text">返回</text>
+      </view>
+      <text class="pl-items-title">{{selectedList.name}}</text>
+      <view class="pl-export-btn" bindtap="exportCsv">
+        <text class="pl-export-text">导出</text>
+      </view>
+    </view>
+
+    <!-- Items loading -->
+    <view wx:if="{{itemsLoading}}" class="pl-loading">
+      <view class="pl-spinner"></view>
+      <text class="pl-loading-text">加载中...</text>
+    </view>
+
+    <!-- Items empty -->
+    <view wx:if="{{!itemsLoading && items.length === 0}}" class="pl-empty">
+      <text class="pl-empty-icon">★</text>
+      <text class="pl-empty-title">列表暂无卡牌</text>
+      <text class="pl-empty-sub">在卡牌详情页将卡牌加入列表</text>
+    </view>
+
+    <!-- Items list -->
+    <view wx:if="{{!itemsLoading && items.length > 0}}" class="pl-items-list">
+      <view
+        wx:for="{{items}}"
+        wx:key="id"
+        class="pl-item-card"
+      >
+        <!-- Card thumbnail -->
+        <view class="pl-item-img-wrap" data-id="{{item.scryfallId}}" bindtap="onCardTap">
+          <image wx:if="{{item.cardImage}}" class="pl-item-img" src="{{item.cardImage}}" mode="aspectFill" />
+          <view wx:else class="pl-item-img-ph">
+            <text class="pl-item-img-ph-text">MTG</text>
+          </view>
+        </view>
+
+        <!-- Card info (normal state) -->
+        <view wx:if="{{editingItemId !== item.id}}" class="pl-item-info">
+          <text class="pl-item-name">{{item.cardNameCn || item.cardName}}</text>
+          <view class="pl-item-meta">
+            <text wx:if="{{item.setCode}}" class="pl-item-set">{{item.setCode}}</text>
+            <text class="pl-item-cond">{{item.condition || 'NM'}}</text>
+          </view>
+          <view class="pl-item-price-row">
+            <text class="pl-item-price">{{item.priceCny ? '¥' + item.priceCny : (item.priceUsd ? '$' + item.priceUsd : '--')}}</text>
+            <text class="pl-item-qty">× {{item.quantity || 1}}</text>
+          </view>
+          <view class="pl-item-actions">
+            <view class="pl-item-edit-btn" data-id="{{item.id}}" bindtap="startEdit">
+              <text>编辑</text>
+            </view>
+            <view class="pl-item-remove-btn" data-id="{{item.id}}" bindtap="removeItem">
+              <text>移除</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- Edit state -->
+        <view wx:if="{{editingItemId === item.id}}" class="pl-item-edit">
+          <view class="pl-edit-row">
+            <text class="pl-edit-label">数量</text>
+            <input class="pl-edit-input" type="number" value="{{editQuantity}}" bindinput="onEditQuantityInput" />
+          </view>
+          <view class="pl-edit-row">
+            <text class="pl-edit-label">状况</text>
+            <picker mode="selector" range="{{conditionOptions}}" value="{{conditionOptions.indexOf(editCondition)}}" bindchange="selectCondition">
+              <view class="pl-edit-picker">{{editCondition}} ▾</view>
+            </picker>
+          </view>
+          <view class="pl-edit-row">
+            <text class="pl-edit-label">备注</text>
+            <input class="pl-edit-input" placeholder="备注..." value="{{editNotes}}" bindinput="onEditNotesInput" />
+          </view>
+          <view class="pl-edit-btns">
+            <view class="pl-edit-cancel" bindtap="cancelEdit">取消</view>
+            <view class="pl-edit-save" bindtap="saveEdit">保存</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- noop handler for catchtap -->
+
+</view>

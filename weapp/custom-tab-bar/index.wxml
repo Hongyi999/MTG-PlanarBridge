@@ -1,3 +1,4 @@
+<!-- Custom Tab Bar - matches React App.tsx nav bar exactly -->
 <view class="tab-bar">
   <view
     wx:for="{{list}}"
@@ -6,7 +7,25 @@
     data-index="{{index}}"
     bindtap="switchTab"
   >
-    <text class="tab-icon">{{item.icon}}</text>
+    <!-- SVG-style icons matching React lucide icons -->
+    <view class="tab-icon-wrap">
+      <!-- Home icon -->
+      <view wx:if="{{index === 0}}" class="svg-icon">
+        <text class="icon-char {{selected === 0 ? 'active' : ''}}">⌂</text>
+      </view>
+      <!-- Search icon -->
+      <view wx:if="{{index === 1}}" class="svg-icon">
+        <text class="icon-char {{selected === 1 ? 'active' : ''}}">⊕</text>
+      </view>
+      <!-- Users icon -->
+      <view wx:if="{{index === 2}}" class="svg-icon">
+        <text class="icon-char {{selected === 2 ? 'active' : ''}}">⊚</text>
+      </view>
+      <!-- User icon -->
+      <view wx:if="{{index === 3}}" class="svg-icon">
+        <text class="icon-char {{selected === 3 ? 'active' : ''}}">⊛</text>
+      </view>
+    </view>
     <text class="tab-label">{{item.text}}</text>
   </view>
 </view>

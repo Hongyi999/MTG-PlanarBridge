@@ -1,69 +1,67 @@
-/* ======================================
-   Community Page — 社区 (Light Theme)
-   ====================================== */
+/* Community Page Styles — matching React community.tsx */
 
 .page-community {
-  background-color: #f7f4f0;
+  background: #f7f4f0;
   min-height: 100vh;
   padding-bottom: 120rpx;
 }
 
-.px-container { padding: 0 32rpx; }
-
-/* ---- Header ---- */
+/* Header */
 .comm-header {
-  padding: 48rpx 32rpx 12rpx;
+  padding: 32rpx 32rpx 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .page-title {
-  font-size: 48rpx;
+  font-size: 40rpx;
   font-weight: 700;
   color: #1a1a0a;
 }
 
-/* ---- Filter Tabs ---- */
+.px-container { padding-left: 32rpx; padding-right: 32rpx; }
+
+/* Filter tabs */
 .filter-bar {
-  background-color: #f7f4f0;
-  padding: 12rpx 0 16rpx;
-  border-bottom: 1rpx solid #e8e0d4;
-  margin-bottom: 20rpx;
+  padding: 0 32rpx 20rpx;
 }
 
 .filter-scroll {
   white-space: nowrap;
-  padding: 0 32rpx;
 }
 
 .filter-tab {
   display: inline-block;
-  padding: 10rpx 28rpx;
-  margin-right: 12rpx;
-  border-radius: 20rpx;
+  padding: 12rpx 28rpx;
+  border-radius: 40rpx;
   font-size: 26rpx;
   color: #8a7a5a;
-  background: rgba(237, 232, 224, 0.5);
+  background: rgba(255,255,255,0.5);
   border: 1rpx solid #e8e0d4;
+  margin-right: 16rpx;
+  font-weight: 500;
 }
 
 .filter-tab.active {
+  background: #8b6914;
   color: #ffffff;
-  background: #1a1a0a;
-  border-color: #1a1a0a;
-  font-weight: 600;
+  border-color: #8b6914;
 }
 
-/* ---- Loading ---- */
+/* Loading */
 .loading-center {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 80rpx 0;
+  gap: 24rpx;
 }
 
 .loading-spinner {
   width: 48rpx;
   height: 48rpx;
-  border: 4rpx solid rgba(139, 105, 20, 0.2);
+  border: 4rpx solid rgba(139,105,20,0.2);
   border-top: 4rpx solid #8b6914;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -75,178 +73,163 @@
 }
 
 .loading-text {
-  color: #8a7a5a;
   font-size: 26rpx;
-  margin-top: 16rpx;
+  color: #8a7a5a;
 }
 
-/* ---- Post Cards ---- */
+/* Posts list */
 .posts-list {
-  padding-bottom: 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  padding-top: 8rpx;
 }
 
+/* Post card */
 .community-post {
-  background-color: #ffffff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  margin-bottom: 20rpx;
+  background: #ffffff;
+  border-radius: 24rpx;
   border: 1rpx solid #e8e0d4;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  padding: 28rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
 }
 
-/* ---- Post Header ---- */
+/* Post header */
 .post-header {
   display: flex;
   align-items: center;
+  gap: 16rpx;
   margin-bottom: 16rpx;
 }
 
 .avatar-small {
-  width: 72rpx;
-  height: 72rpx;
+  width: 64rpx;
+  height: 64rpx;
   border-radius: 50%;
+  border: 1rpx solid #e8e0d4;
   flex-shrink: 0;
 }
 
 .avatar-placeholder {
-  background-color: #ede8e0;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #f0ebe3;
 }
 
 .post-header-info {
   flex: 1;
-  margin-left: 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
 }
 
 .post-author-name {
-  font-size: 28rpx;
-  color: #1a1a0a;
+  font-size: 26rpx;
   font-weight: 600;
-  display: block;
+  color: #1a1a0a;
 }
 
 .post-time-text {
   font-size: 22rpx;
-  color: #8a7a5a;
-  display: block;
-  margin-top: 4rpx;
+  color: #a89a7a;
 }
 
-/* ---- Type Tags ---- */
+/* Type badges */
 .type-tag {
-  font-size: 22rpx;
-  font-weight: 600;
   padding: 6rpx 16rpx;
-  border-radius: 12rpx;
-  flex-shrink: 0;
+  border-radius: 10rpx;
+  font-size: 20rpx;
+  font-weight: 600;
 }
 
-.tag-discussion {
-  background: rgba(99, 102, 241, 0.1);
-  color: #6366f1;
-}
+.tag-discussion { background: rgba(139,105,20,0.1); color: #8b6914; }
+.tag-sell       { background: rgba(234,88,12,0.1);  color: #ea580c; }
+.tag-buy        { background: rgba(21,128,61,0.1);  color: #15803d; }
+.tag-trade      { background: rgba(30,64,175,0.1);  color: #1e40af; }
 
-.tag-sell {
-  background: rgba(34, 197, 94, 0.1);
-  color: #16a34a;
-}
-
-.tag-buy {
-  background: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
-}
-
-.tag-trade {
-  background: rgba(245, 158, 11, 0.1);
-  color: #d97706;
-}
-
-/* ---- Post Body ---- */
+/* Post body */
 .post-body {
   font-size: 28rpx;
-  color: #3a3a2a;
+  color: #1a1a0a;
   line-height: 1.7;
   display: block;
   margin-bottom: 16rpx;
-  white-space: pre-wrap;
 }
 
-/* ---- Post Images ---- */
+/* Post images */
 .post-images {
   display: flex;
-  flex-wrap: wrap;
   gap: 8rpx;
   margin-bottom: 16rpx;
+  flex-wrap: wrap;
 }
 
 .post-image {
   border-radius: 12rpx;
-  background-color: #ede8e0;
+  overflow: hidden;
 }
 
 .post-image.single {
   width: 100%;
-  height: 400rpx;
+  height: 300rpx;
 }
 
 .post-image.double {
   width: calc(50% - 4rpx);
-  height: 300rpx;
+  height: 220rpx;
 }
 
 .post-image.triple {
   width: calc(33.33% - 6rpx);
-  height: 240rpx;
+  height: 180rpx;
 }
 
-/* ---- Linked Card ---- */
+/* Linked card */
 .post-linked-card {
   display: flex;
   align-items: center;
-  background-color: #f7f4f0;
-  border-radius: 12rpx;
+  gap: 16rpx;
   padding: 16rpx;
-  margin-bottom: 16rpx;
+  background: #f7f4f0;
+  border-radius: 16rpx;
   border: 1rpx solid #e8e0d4;
-}
-
-.post-linked-card:active {
-  background-color: #ede8e0;
+  margin-bottom: 16rpx;
 }
 
 .linked-card-image {
   width: 60rpx;
   height: 84rpx;
-  border-radius: 6rpx;
-  margin-right: 16rpx;
-  background-color: #ede8e0;
+  border-radius: 8rpx;
+  flex-shrink: 0;
 }
 
 .linked-card-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
 }
 
 .linked-card-name {
   font-size: 26rpx;
-  color: #8b6914;
   font-weight: 500;
-  display: block;
+  color: #1a1a0a;
 }
 
 .linked-card-price {
   font-size: 24rpx;
-  color: #8a7a5a;
-  display: block;
-  margin-top: 4rpx;
+  color: #8b6914;
+  font-weight: 600;
+  font-family: 'Menlo', monospace;
 }
 
-/* ---- Post Actions ---- */
+/* Post actions */
 .post-actions {
   display: flex;
   gap: 32rpx;
-  padding-top: 4rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0ebe3;
 }
 
 .post-action {
@@ -255,13 +238,9 @@
   gap: 8rpx;
 }
 
-.post-action:active {
-  opacity: 0.7;
-}
-
 .action-icon {
   font-size: 28rpx;
-  color: #8a7a5a;
+  color: #a89a7a;
 }
 
 .action-count {
@@ -269,55 +248,38 @@
   color: #8a7a5a;
 }
 
-/* ---- Empty State ---- */
+/* Empty state */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 100rpx 0 60rpx;
+  padding: 80rpx 48rpx;
+  gap: 16rpx;
 }
 
-.empty-icon {
-  font-size: 80rpx;
-  opacity: 0.3;
-  margin-bottom: 20rpx;
-}
+.empty-icon { font-size: 64rpx; }
+.empty-title { font-size: 28rpx; color: #8a7a5a; font-weight: 500; }
+.empty-sub { font-size: 24rpx; color: #a89a7a; }
 
-.empty-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #8a7a5a;
-}
-
-.empty-sub {
-  font-size: 24rpx;
-  color: #a89a7a;
-  margin-top: 8rpx;
-}
-
-/* ---- FAB Button ---- */
+/* FAB create button */
 .fab-button {
   position: fixed;
-  right: 40rpx;
-  bottom: 160rpx;
+  right: 48rpx;
+  bottom: 140rpx;
   width: 96rpx;
   height: 96rpx;
-  background: #8b6914;
   border-radius: 50%;
+  background: #8b6914;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(139, 105, 20, 0.35);
+  box-shadow: 0 8rpx 24rpx rgba(139,105,20,0.4);
   z-index: 100;
 }
 
-.fab-button:active {
-  transform: scale(0.95);
-  opacity: 0.9;
-}
+.fab-button:active { background: #7a5c10; }
 
 .fab-icon {
   font-size: 40rpx;
   color: #ffffff;
-  line-height: 1;
 }

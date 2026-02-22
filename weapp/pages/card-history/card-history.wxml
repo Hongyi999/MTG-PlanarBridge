@@ -1,0 +1,52 @@
+<view class="ch-page">
+
+  <!-- Header -->
+  <view class="ch-header">
+    <text class="ch-title">浏览足迹</text>
+    <view wx:if="{{history.length > 0}}" class="ch-clear-btn" bindtap="clearHistory">
+      <text class="ch-clear-text">清除</text>
+    </view>
+  </view>
+
+  <!-- Loading -->
+  <view wx:if="{{loading}}" class="ch-loading">
+    <view class="ch-spinner"></view>
+    <text class="ch-loading-text">加载中...</text>
+  </view>
+
+  <!-- Empty -->
+  <view wx:if="{{!loading && history.length === 0}}" class="ch-empty">
+    <text class="ch-empty-icon">◷</text>
+    <text class="ch-empty-title">暂无浏览记录</text>
+    <text class="ch-empty-sub">查看卡牌后会在这里留下足迹</text>
+  </view>
+
+  <!-- History list -->
+  <view wx:if="{{!loading && history.length > 0}}" class="ch-list">
+    <view
+      wx:for="{{history}}"
+      wx:key="id"
+      class="ch-item"
+      data-id="{{item.scryfallId}}"
+      bindtap="onCardTap"
+    >
+      <!-- Card image -->
+      <view class="ch-img-wrap">
+        <image wx:if="{{item.cardImage}}" class="ch-img" src="{{item.cardImage}}" mode="aspectFill" />
+        <view wx:else class="ch-img-ph">
+          <text class="ch-img-ph-text">MTG</text>
+        </view>
+      </view>
+
+      <!-- Card info -->
+      <view class="ch-info">
+        <text class="ch-card-name">{{item.cardNameCn || item.cardName}}</text>
+        <text wx:if="{{item.cardNameCn && item.cardName !== item.cardNameCn}}" class="ch-card-name-en">{{item.cardName}}</text>
+        <text class="ch-time">{{item.timeAgo}}</text>
+      </view>
+
+      <text class="ch-arrow">›</text>
+    </view>
+  </view>
+
+</view>

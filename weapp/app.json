@@ -5,14 +5,18 @@
     "pages/community/community",
     "pages/me/me",
     "pages/card-detail/card-detail",
-    "pages/create-post/create-post"
+    "pages/create-post/create-post",
+    "pages/price-lists/price-lists",
+    "pages/card-history/card-history",
+    "pages/login/login"
   ],
   "window": {
     "navigationBarBackgroundColor": "#f7f4f0",
     "navigationBarTitleText": "PlanarBridge",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#f7f4f0",
-    "backgroundTextStyle": "dark"
+    "backgroundTextStyle": "dark",
+    "enablePullDownRefresh": true
   },
   "tabBar": {
     "custom": true,

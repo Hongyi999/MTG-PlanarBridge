@@ -1,0 +1,148 @@
+/* Card History Page */
+
+.ch-page {
+  background: #f7f4f0;
+  min-height: 100vh;
+  padding-bottom: 48rpx;
+}
+
+/* Header */
+.ch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 32rpx 16rpx;
+}
+
+.ch-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1a1a0a;
+}
+
+.ch-clear-btn {
+  padding: 12rpx 24rpx;
+  border-radius: 12rpx;
+  border: 1rpx solid rgba(220,38,38,0.25);
+  background: rgba(220,38,38,0.05);
+}
+
+.ch-clear-btn:active { background: rgba(220,38,38,0.12); }
+.ch-clear-text { font-size: 24rpx; color: #dc2626; }
+
+/* Loading */
+.ch-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
+  gap: 24rpx;
+}
+
+.ch-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid rgba(139,105,20,0.2);
+  border-top: 4rpx solid #8b6914;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.ch-loading-text { font-size: 26rpx; color: #8a7a5a; }
+
+/* Empty */
+.ch-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 48rpx;
+  gap: 16rpx;
+}
+
+.ch-empty-icon { font-size: 64rpx; color: #c4b89a; }
+.ch-empty-title { font-size: 28rpx; color: #8a7a5a; font-weight: 500; }
+.ch-empty-sub { font-size: 24rpx; color: #a89a7a; text-align: center; }
+
+/* List */
+.ch-list {
+  padding: 8rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.ch-item {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 20rpx 24rpx;
+  background: #ffffff;
+  border-radius: 20rpx;
+  border: 1rpx solid #e8e0d4;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.ch-item:active { background: #f7f4f0; }
+
+/* Card image */
+.ch-img-wrap {
+  width: 72rpx;
+  height: 100rpx;
+  border-radius: 8rpx;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #e8e0d4;
+}
+
+.ch-img { width: 100%; height: 100%; }
+
+.ch-img-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e8e0d4, #d4c8b0);
+}
+
+.ch-img-ph-text {
+  font-size: 18rpx;
+  font-weight: 700;
+  color: #a89a7a;
+}
+
+/* Card info */
+.ch-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.ch-card-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1a0a;
+}
+
+.ch-card-name-en {
+  font-size: 22rpx;
+  color: #8a7a5a;
+}
+
+.ch-time {
+  font-size: 22rpx;
+  color: #a89a7a;
+  margin-top: 4rpx;
+}
+
+.ch-arrow {
+  font-size: 36rpx;
+  color: #c0b8a0;
+  flex-shrink: 0;
+}
