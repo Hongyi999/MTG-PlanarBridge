@@ -23,11 +23,28 @@
   padding-top: 8rpx;
 }
 
-.tab-icon {
+.tab-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+  height: 48rpx;
+}
+
+.svg-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-char {
   font-size: 44rpx;
   color: #8a7a5a;
-  transition: color 0.2s;
   line-height: 1;
+}
+
+.icon-char.active {
+  color: #8b6914;
 }
 
 .tab-label {
@@ -35,10 +52,9 @@
   color: #8a7a5a;
   margin-top: 4rpx;
   font-weight: 500;
-  transition: color 0.2s;
 }
 
-.tab-item.active .tab-icon {
+.tab-item.active .icon-char {
   color: #8b6914;
 }
 

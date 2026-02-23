@@ -313,7 +313,8 @@ Page({
   },
 
   selectFilterCmcOp(e) {
-    this.setData({ filterCmcOp: e.detail.value });
+    var idx = parseInt(e.detail.value) || 0;
+    this.setData({ filterCmcOp: this.data.cmcOps[idx] || '=' });
   },
 
   noop() {},
